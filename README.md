@@ -81,3 +81,37 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [Vapi](https://vapi.ai/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
+
+## Phase 5: Vapi & LLM Integration
+
+In this phase, we've implemented:
+
+1. **LLM Integration for Question Generation**
+   - Updated `/api/interviews/generate` to use the Vercel AI SDK with Google Generative AI
+   - Implemented robust parsing of LLM responses
+   - Enhanced error handling for LLM API calls
+
+2. **Vapi Webhook Implementation**
+   - Created `/api/vapi/assistant` webhook to handle Vapi requests
+   - Implemented logic to process user speech and save answers
+   - Added functionality to send questions to Vapi and manage interview flow
+
+3. **Interview Session Page**
+   - Created dynamic route `/interview/[sessionId]` for interview sessions
+   - Implemented Vapi client-side integration
+   - Added UI for displaying questions and visual feedback for speaking/listening
+
+### Environment Variables
+
+The following environment variables need to be set in `.env.local`:
+
+```
+# Google Generative AI API Key
+GOOGLE_GENERATIVE_AI_API_KEY=your-google-generative-ai-api-key
+
+# Vapi Configuration
+VAPI_SECRET_TOKEN=your-vapi-secret-token
+NEXT_PUBLIC_VAPI_PUBLIC_KEY=your-vapi-public-key
+NEXT_PUBLIC_VAPI_ASSISTANT_ID=your-vapi-assistant-id
+VAPI_API_KEY=your-vapi-api-key
+```

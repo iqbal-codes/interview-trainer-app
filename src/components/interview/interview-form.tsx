@@ -65,7 +65,7 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
           Enter the details of the job you&apos;re applying for. This will help our AI generate relevant interview questions.
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <CardContent>
           <div className="grid gap-6">
             <div className="grid gap-3">
