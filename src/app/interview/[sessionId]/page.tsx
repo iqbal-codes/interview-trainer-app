@@ -15,18 +15,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
-import Vapi from '@vapi-ai/web';
 import { Database } from '@/lib/supabase/types';
 
-// Define types for Vapi events
-interface VapiMessage {
-  role: 'assistant' | 'user';
-  message?: {
-    type: string;
-    text: string;
-  };
-}
-
+// Define types for the interview session
 interface InterviewSession {
   id: string;
   target_role: string;
@@ -36,7 +27,6 @@ interface InterviewSession {
   job_description_context: string | null;
   requested_num_questions: number;
   actual_num_questions: number | null;
-  vapi_call_id: string | null;
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
@@ -56,7 +46,6 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
   const [uiStatusText, setUiStatusText] = useState<string>('Press \'Start Interview\' to begin.');
   const [isListening, setIsListening] = useState(false);
   const [isAssistantSpeaking, setIsAssistantSpeaking] = useState(false);
-  const [vapiInstance, setVapiInstance] = useState<Vapi | null>(null);
 
   // Fetch session details
   useEffect(() => {
@@ -98,119 +87,21 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
     fetchSessionDetails();
   }, [params.sessionId, supabase, toast, router]);
 
-  // Initialize Vapi and handle events
+  // Start interview handler - placeholder for new OpenAI implementation
   const startInterview = useCallback(async () => {
     try {
       setIsLoading(true);
       setUiStatusText('Connecting to interview assistant...');
-
-      // Check for Vapi public key
-      const vapiPublicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
-      const vapiAssistantId = process.env.NEXT_PUBLIC_VAPI_ASSISTANT_ID;
-
-      if (!vapiPublicKey || !vapiAssistantId) {
-        throw new Error('Missing Vapi configuration');
-      }
-
-      // Initialize Vapi client
-      const vapi = new Vapi(vapiPublicKey);
-
-      // Set up event handlers
-      vapi.on('call-start', () => {
-        setIsCallActive(true);
-        setUiStatusText('Waiting for the first question...');
-        setIsLoading(false);
+      
+      // TODO: Replace with WebSocket connection to our OpenAI-based backend
+      
+      toast({
+        title: 'Not Implemented',
+        description: 'Real-time interview functionality is still being implemented with OpenAI.',
+        variant: 'default',
       });
-
-      vapi.on('speech-start', () => {
-        setIsListening(true);
-        setIsAssistantSpeaking(false);
-        setUiStatusText('Listening...');
-      });
-
-      vapi.on('speech-end', () => {
-        setIsListening(false);
-        setUiStatusText('Processing your response...');
-      });
-
-      vapi.on('message', (message: VapiMessage) => {
-        if (message.role === 'assistant' && message.message?.type === 'text') {
-          setCurrentQuestionText(message.message.text);
-          setIsAssistantSpeaking(true);
-          setUiStatusText('Assistant speaking...');
-        }
-      });
-
-      // Note: These event names might need to be adjusted based on Vapi's actual SDK
-      // If 'utterance-start' and 'utterance-end' are not supported, use appropriate alternatives
-      // or remove these handlers if not needed
-      try {
-        // @ts-expect-error - Vapi SDK might support these events in future versions
-        vapi.on('utterance-start', () => {
-          setIsAssistantSpeaking(true);
-          setUiStatusText('Assistant speaking...');
-        });
-
-        // @ts-expect-error - Vapi SDK might support these events in future versions
-        vapi.on('utterance-end', () => {
-          setIsAssistantSpeaking(false);
-          setUiStatusText('Waiting for your response...');
-        });
-      } catch (_) {
-        console.warn('Utterance events not supported in this Vapi SDK version');
-      }
-
-      vapi.on('call-end', () => {
-        setIsCallActive(false);
-        setIsListening(false);
-        setIsAssistantSpeaking(false);
-        setUiStatusText('Interview Complete! Redirecting to feedback...');
-        
-        // Clean up Vapi resources
-        vapi.stop();
-        setVapiInstance(null);
-
-        // Show toast notification
-        toast({
-          title: 'Interview Completed',
-          description: 'Your interview has been completed successfully.',
-        });
-
-        // Redirect to dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 3000);
-      });
-
-      vapi.on('error', (error: Error) => {
-        console.error('Vapi error:', error);
-        setIsLoading(false);
-        setIsCallActive(false);
-        setUiStatusText('Error: Could not connect to interview assistant.');
-        
-        toast({
-          title: 'Connection Error',
-          description: 'Failed to connect to the interview assistant. Please try again.',
-          variant: 'destructive',
-        });
-      });
-
-      // Start the Vapi call with the session ID and initial question index
-      // Note: The exact structure for passing custom data might need to be adjusted
-      // based on Vapi's documentation
-      // @ts-expect-error - Ignoring type check as the exact Vapi API structure might differ
-      vapi.start(vapiAssistantId, {
-        firstMessage: {
-          forwardedParams: {
-            custom_session_id: params.sessionId,
-            current_question_index: 0
-          }
-        }
-      });
-
-      // Store the Vapi instance
-      setVapiInstance(vapi);
-
+      
+      setIsLoading(false);
     } catch (error) {
       console.error('Error starting interview:', error);
       setIsLoading(false);
@@ -220,68 +111,117 @@ export default function InterviewSessionPage({ params }: { params: { sessionId: 
         variant: 'destructive',
       });
     }
-  }, [params.sessionId, toast, router]);
+  }, [toast]);
 
-  // End the interview
+  // End interview handler - placeholder for new implementation
   const endInterview = useCallback(() => {
-    if (vapiInstance && isCallActive) {
-      vapiInstance.stop();
-      setUiStatusText('Ending interview...');
-    }
-  }, [vapiInstance, isCallActive]);
+    setIsCallActive(false);
+    setIsListening(false);
+    setIsAssistantSpeaking(false);
+    setUiStatusText('Interview ended.');
+    
+    toast({
+      title: 'Interview Ended',
+      description: 'You have ended the interview.',
+    });
+    
+    // Redirect to dashboard
+    router.push('/dashboard');
+  }, [router, toast]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (vapiInstance && isCallActive) {
-        vapiInstance.stop();
-      }
-    };
-  }, [vapiInstance, isCallActive]);
+  // Toggle microphone handler - placeholder for new implementation
+  const toggleMicrophone = useCallback(() => {
+    // TODO: Implement with new WebSocket-based audio streaming
+    setIsListening(prev => !prev);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <MainLayout>
+        <div className="flex justify-center items-center h-[80vh]">
+          <p>Loading interview session...</p>
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
-      <div className="container mx-auto p-4 md:p-8 flex flex-col items-center justify-center min-h-[calc(100vh-150px)]">
-        <Card className="w-full max-w-xl shadow-xl">
-          <CardHeader className="text-center border-b pb-4">
-            <CardTitle className="text-2xl md:text-3xl font-bold">Interview Session In Progress</CardTitle>
-            <CardDescription className="text-sm md:text-base text-muted-foreground mt-1">
-              Role: {sessionDetails?.target_role || 'Loading...'} | Type: {sessionDetails?.interview_type || 'Loading...'}
-            </CardDescription>
+      <div className="container mx-auto py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2">{sessionDetails?.session_name || 'Interview Session'}</h1>
+          <p className="text-muted-foreground">
+            Role: {sessionDetails?.target_role} | Type: {sessionDetails?.interview_type}
+          </p>
+        </div>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Current Question</CardTitle>
+            <CardDescription>Answer the question as if you were in a real interview</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 text-center p-6 md:p-8">
-            {/* Status Display / Current Question Area */}
-            <div 
-              id="interview-status-display" 
-              className="text-lg md:text-xl font-semibold min-h-[90px] p-4 bg-secondary/50 rounded-md border border-secondary flex items-center justify-center"
-            >
-              {isCallActive && currentQuestionText ? currentQuestionText : uiStatusText}
-            </div>
-
-            {/* Visual Feedback for Speaking/Listening */}
-            <div className="flex items-center justify-center space-x-2 text-muted-foreground my-4">
-              <span>{isListening ? <Mic size={20} className="text-blue-500 animate-pulse" /> : <MicOff size={20} />}</span>
-              <span>{isAssistantSpeaking ? <Volume2 size={20} className="text-green-500 animate-pulse" /> : <VolumeX size={20} />}</span>
-              <span className="text-sm">{uiStatusText}</span>
-            </div>
-
-            {/* Controls */}
-            <Button 
-              id="toggle-interview-button" 
-              size="lg" 
-              className="w-full md:w-auto px-8 py-6 text-lg"
-              onClick={isCallActive ? endInterview : startInterview}
-              disabled={isLoading || (sessionDetails?.status !== 'ready_to_start' && !isCallActive)}
-            >
-              {isLoading ? 'Connecting...' : isCallActive ? 'End Interview' : 'Start Interview'}
-            </Button>
-          </CardContent>
-          <CardFooter className="text-center border-t pt-4">
-            <p className="text-xs md:text-sm text-muted-foreground">
-              Ensure your microphone is enabled and speak clearly when prompted.
+          <CardContent>
+            <p className="text-xl font-medium min-h-[80px]">
+              {currentQuestionText || "The question will appear here when the interview starts."}
             </p>
-          </CardFooter>
+          </CardContent>
         </Card>
+
+        <div className="flex justify-between items-center mb-8">
+          <p className="bg-muted p-2 rounded w-full">
+            Status: {uiStatusText}
+          </p>
+        </div>
+
+        <div className="flex gap-4 justify-center">
+          {!isCallActive ? (
+            <Button 
+              onClick={startInterview} 
+              disabled={isLoading}
+              size="lg"
+              className="w-40"
+            >
+              Start Interview
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                className="w-16 h-16 rounded-full"
+                onClick={toggleMicrophone}
+              >
+                {isListening ? <MicOff className="h-6 w-6" /> : <Mic className="h-6 w-6" />}
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={endInterview}
+                size="lg"
+                className="w-40"
+              >
+                End Interview
+              </Button>
+            </>
+          )}
+        </div>
+        
+        <div className="mt-8">
+          <p className="text-sm text-muted-foreground text-center">
+            {isAssistantSpeaking ? (
+              <span className="flex items-center justify-center gap-2">
+                <Volume2 className="h-4 w-4 animate-pulse" /> Assistant is speaking
+              </span>
+            ) : isListening ? (
+              <span className="flex items-center justify-center gap-2">
+                <Mic className="h-4 w-4 animate-pulse" /> Microphone active
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                <VolumeX className="h-4 w-4" /> Audio inactive
+              </span>
+            )}
+          </p>
+        </div>
       </div>
     </MainLayout>
   );

@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: true
----
 # **AI-Powered Interview Practice Platform \- Project Rules for Cursor AI (OpenAI Pivot)**
 
 ## **1\. Core Technology Stack**
@@ -10,7 +5,7 @@ alwaysApply: true
 * **Framework:** Next.js (React)  
 * **Language:** TypeScript (strict mode preferred)  
 * **Styling:** Tailwind CSS  
-* **UI Components:** shadcn@latest
+* **UI Components:** Shadcn/ui  
 * **State Management:** Zustand (or a similar lightweight React state manager)  
 * **Backend/API:** Next.js API Routes, WebSocket Server (e.g., using ws package) for real-time communication.  
 * **Database & BaaS:** Supabase (PostgreSQL, Supabase Auth, Supabase Storage)  
@@ -29,7 +24,7 @@ alwaysApply: true
 * **Async/Await:** Use async/await for asynchronous operations.  
 * **Naming Conventions:** Follow standard JavaScript/TypeScript naming conventions.
 
-## **3\. Frontend (Next.js & shadcn@latest)**
+## **3\. Frontend (Next.js & Shadcn/ui)**
 
 * **Component Structure:** Follow standard Next.js page and component structure.  
 * **Real-time Interaction:**  

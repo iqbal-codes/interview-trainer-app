@@ -1,3 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 AI-Powered Interview Practice Platform - Project Rules for Cursor AI
 1. Core Technology Stack
 - Framework: Next.js (React)
