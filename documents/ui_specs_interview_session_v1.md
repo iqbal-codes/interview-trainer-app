@@ -125,4 +125,3 @@ This document outlines the UI specifications for the "Interview Session Page," w
 ---
 
 This UI specification should provide a solid foundation for building the frontend of the interview session. The Vapi integration part is key and will require careful attention to Vapi's specific SDK methods and event names.
-

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -14,7 +14,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -23,22 +23,19 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
-import {
-  interviewSetupSchema,
-  type InterviewSetupInput,
-} from "@/lib/validations/interview";
+import { interviewSetupSchema, type InterviewSetupInput } from '@/lib/validations/interview';
 
 interface InterviewSessionResponse {
   message: string;
@@ -56,17 +53,16 @@ interface InterviewSetupFormProps {
 
 export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
   const [apiError, setApiError] = useState<string | null>(null);
-  const [generatedSession, setGeneratedSession] =
-    useState<InterviewSessionResponse | null>(null);
+  const [generatedSession, setGeneratedSession] = useState<InterviewSessionResponse | null>(null);
   const router = useRouter();
 
   const form = useForm<InterviewSetupInput>({
     resolver: zodResolver(interviewSetupSchema),
     defaultValues: {
-      target_role: "",
-      key_skills_focused: "",
-      interview_type: "Behavioral",
-      job_description_context: "",
+      target_role: '',
+      key_skills_focused: '',
+      interview_type: 'Behavioral',
+      job_description_context: '',
       requested_num_questions: 5,
     },
   });
@@ -85,17 +81,17 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
       };
 
       // Call the API
-      const response = await fetch("/api/interviews/generate", {
-        method: "POST",
+      const response = await fetch('/api/interviews/generate', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(processedData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate interview");
+        throw new Error(errorData.error || 'Failed to generate interview');
       }
 
       const responseData = (await response.json()) as InterviewSessionResponse;
@@ -104,7 +100,7 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
       setGeneratedSession(responseData);
 
       // Show success message
-      toast.success("Interview session created successfully!");
+      toast.success('Interview session created successfully!');
 
       // Call the onSuccess callback if provided
       if (onSuccess) {
@@ -112,13 +108,12 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
       } else {
         // Navigate to the dashboard after a short delay
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push('/dashboard');
         }, 1500);
       }
     } catch (error) {
       const errorMessage =
-        (error as Error).message ||
-        "An error occurred while generating the interview";
+        (error as Error).message || 'An error occurred while generating the interview';
       setApiError(errorMessage);
       toast.error(errorMessage);
     }
@@ -127,9 +122,7 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-xl font-semibold">
-          Configure Your Practice Session
-        </CardTitle>
+        <CardTitle className="text-xl font-semibold">Configure Your Practice Session</CardTitle>
         <CardDescription>
           Fill in the details below to generate a tailored interview experience.
         </CardDescription>
@@ -146,14 +139,9 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                 <FormItem>
                   <FormLabel>Target Role</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., Software Engineer, Product Manager"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., Software Engineer, Product Manager" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    What role are you practicing for?
-                  </FormDescription>
+                  <FormDescription>What role are you practicing for?</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -167,14 +155,9 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                 <FormItem>
                   <FormLabel>Key Skills to Focus On</FormLabel>
                   <FormControl>
-                    <Input
-                      placeholder="e.g., React, Node.js, Problem Solving"
-                      {...field}
-                    />
+                    <Input placeholder="e.g., React, Node.js, Problem Solving" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Enter skills separated by commas.
-                  </FormDescription>
+                  <FormDescription>Enter skills separated by commas.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -187,10 +170,7 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Interview Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select an interview type" />
@@ -198,16 +178,12 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Behavioral">Behavioral</SelectItem>
-                      <SelectItem value="Technical - General">
-                        Technical - General
-                      </SelectItem>
+                      <SelectItem value="Technical - General">Technical - General</SelectItem>
                       <SelectItem value="HR Screening">HR Screening</SelectItem>
                       <SelectItem value="Situational">Situational</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Choose the type of interview.
-                  </FormDescription>
+                  <FormDescription>Choose the type of interview.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -228,8 +204,7 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                     />
                   </FormControl>
                   <FormDescription>
-                    Providing a job description can help generate more relevant
-                    questions.
+                    Providing a job description can help generate more relevant questions.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -244,9 +219,7 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                 <FormItem>
                   <FormLabel>Number of Questions</FormLabel>
                   <Select
-                    onValueChange={(value: string) =>
-                      field.onChange(parseInt(value))
-                    }
+                    onValueChange={(value: string) => field.onChange(parseInt(value))}
                     defaultValue={String(field.value)}
                   >
                     <FormControl>
@@ -289,13 +262,9 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
           <CardFooter className="flex justify-end">
             <Button
               type="submit"
-              disabled={
-                form.formState.isSubmitting || generatedSession !== null
-              }
+              disabled={form.formState.isSubmitting || generatedSession !== null}
             >
-              {form.formState.isSubmitting
-                ? "Generating..."
-                : "Generate Interview"}
+              {form.formState.isSubmitting ? 'Generating...' : 'Generate Interview'}
             </Button>
           </CardFooter>
         </form>

@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
-import { User } from "@supabase/supabase-js";
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { createClient } from '@/lib/supabase/client';
+import { toast } from 'sonner';
+import { User } from '@supabase/supabase-js';
 
 export function Navbar() {
   const router = useRouter();
@@ -18,7 +18,9 @@ export function Navbar() {
 
     // Check current auth status
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       setUser(session?.user || null);
       setIsLoading(false);
     };
@@ -26,11 +28,11 @@ export function Navbar() {
     checkUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user || null);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+    });
 
     return () => {
       subscription.unsubscribe();
@@ -39,14 +41,14 @@ export function Navbar() {
 
   const handleLogout = async () => {
     const supabase = createClient();
-    
+
     try {
       await supabase.auth.signOut();
-      toast.success("Logged out successfully");
-      router.push("/");
+      toast.success('Logged out successfully');
+      router.push('/');
     } catch (error) {
-      toast.error("Error signing out");
-      console.error("Error signing out:", error);
+      toast.error('Error signing out');
+      console.error('Error signing out:', error);
     }
   };
 
@@ -58,10 +60,10 @@ export function Navbar() {
             <span className="text-xl font-bold">AI Interview Practice</span>
           </Link>
         </div>
-        
+
         <div className="flex items-center gap-4">
-          {!isLoading && (
-            user ? (
+          {!isLoading &&
+            (user ? (
               <>
                 <Link href="/dashboard">
                   <Button variant="ghost">Dashboard</Button>
@@ -82,10 +84,9 @@ export function Navbar() {
                   <Button variant="default">Sign Up</Button>
                 </Link>
               </>
-            )
-          )}
+            ))}
         </div>
       </div>
     </nav>
   );
-} 
+}

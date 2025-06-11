@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -22,7 +29,7 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!jobTitle.trim()) {
       toast({
         title: 'Error',
@@ -31,9 +38,9 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
       });
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       if (onSubmit) {
         onSubmit(jobTitle, jobDescription);
@@ -41,7 +48,7 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
         // Store in session storage for the interview page
         sessionStorage.setItem('interviewJobTitle', jobTitle);
         sessionStorage.setItem('interviewJobDescription', jobDescription);
-        
+
         // Navigate to the interview session page
         router.push('/interview/session');
       }
@@ -62,7 +69,8 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
       <CardHeader>
         <CardTitle>Job Details</CardTitle>
         <CardDescription>
-          Enter the details of the job you&apos;re applying for. This will help our AI generate relevant interview questions.
+          Enter the details of the job you&apos;re applying for. This will help our AI generate
+          relevant interview questions.
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -70,11 +78,11 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
           <div className="grid gap-6">
             <div className="grid gap-3">
               <Label htmlFor="job-title">Job Title</Label>
-              <Input 
-                id="job-title" 
-                placeholder="e.g., Software Engineer, Marketing Manager" 
+              <Input
+                id="job-title"
+                placeholder="e.g., Software Engineer, Marketing Manager"
                 value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
+                onChange={e => setJobTitle(e.target.value)}
               />
             </div>
             <div className="grid gap-3">
@@ -84,7 +92,7 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
                 placeholder="Paste the job description here or describe the role you're applying for..."
                 className="min-h-32"
                 value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
+                onChange={e => setJobDescription(e.target.value)}
               />
             </div>
           </div>
@@ -100,4 +108,4 @@ export function InterviewForm({ onSubmit }: InterviewFormProps) {
       </form>
     </Card>
   );
-} 
+}

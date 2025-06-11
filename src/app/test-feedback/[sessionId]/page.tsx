@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -14,14 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { 
-  Loader2, 
-  Mic, 
-  MicOff, 
-  Play, 
-  CheckCircle2, 
-  XCircle 
-} from 'lucide-react';
+import { Loader2, Mic, MicOff, Play, CheckCircle2, XCircle } from 'lucide-react';
 import { Database } from '@/lib/supabase/types';
 
 interface Question {
@@ -44,36 +37,39 @@ interface Feedback {
   actionable_suggestions: string;
 }
 
-export default function TestFeedbackPage({ params }: { params: { sessionId: string } }) {
+export default function TestFeedbackPage({ params }: { params: Promise<{ sessionId: string }> }) {
+  const sessionId = use(params).sessionId;
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClientComponentClient<Database>();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
-  
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingBlob, setRecordingBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  
+
   // Feedback state
   const [isFeedbackLoading, setIsFeedbackLoading] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
-  
+
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  
+
   // Check authentication and fetch session data
   useEffect(() => {
     async function checkAuthAndFetchData() {
       try {
         // Check if user is authenticated
-        const { data: { session: authSession } } = await supabase.auth.getSession();
+        const {
+          data: { session: authSession },
+        } = await supabase.auth.getSession();
         if (!authSession) {
           toast({
             title: 'Authentication Required',
@@ -83,14 +79,14 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
           router.push('/auth/signin');
           return;
         }
-        
+
         // Fetch the session details
         const { data: sessionData, error: sessionError } = await supabase
           .from('interview_sessions')
           .select('*')
-          .eq('id', params.sessionId)
+          .eq('id', sessionId)
           .single();
-          
+
         if (sessionError || !sessionData) {
           toast({
             title: 'Session Not Found',
@@ -100,7 +96,7 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
           router.push('/dashboard');
           return;
         }
-        
+
         // Verify the session belongs to the user
         if (sessionData.user_id !== authSession.user.id) {
           toast({
@@ -111,16 +107,16 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
           router.push('/dashboard');
           return;
         }
-        
+
         setSession(sessionData as InterviewSession);
-        
+
         // Fetch questions for this session
         const { data: questionsData, error: questionsError } = await supabase
           .from('interview_questions')
           .select('*')
-          .eq('session_id', params.sessionId)
+          .eq('session_id', sessionId)
           .order('question_order', { ascending: true });
-          
+
         if (questionsError) {
           console.error('Error fetching questions:', questionsError);
           toast({
@@ -130,7 +126,7 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
           });
           return;
         }
-        
+
         if (questionsData && questionsData.length > 0) {
           setQuestions(questionsData as Question[]);
           // Set the first question as the current question for this test page
@@ -142,7 +138,7 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             variant: 'destructive',
           });
         }
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error('Error in setup:', error);
@@ -153,10 +149,10 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
         });
       }
     }
-    
+
     checkAuthAndFetchData();
-  }, [params.sessionId, router, supabase, toast]);
-  
+  }, [sessionId, router, supabase, toast]);
+
   // Handle recording start/stop
   const toggleRecording = useCallback(async () => {
     if (isRecording) {
@@ -167,43 +163,43 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
       }
       return;
     }
-    
+
     // Start recording
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       // Reset previous recording data
       audioChunksRef.current = [];
       setRecordingBlob(null);
       setAudioUrl(null);
       setFeedback(null);
       setFeedbackError(null);
-      
+
       const mediaRecorder = new MediaRecorder(stream);
-      
-      mediaRecorder.ondataavailable = (event) => {
+
+      mediaRecorder.ondataavailable = event => {
         if (event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
-      
+
       mediaRecorder.onstop = () => {
         // Create blob from recorded chunks
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const url = URL.createObjectURL(audioBlob);
-        
+
         setRecordingBlob(audioBlob);
         setAudioUrl(url);
-        
+
         // Stop all tracks in the stream to release the microphone
         stream.getTracks().forEach(track => track.stop());
       };
-      
+
       // Start recording
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
-      
+
       toast({
         title: 'Recording Started',
         description: 'Speak clearly into your microphone to answer the question.',
@@ -217,44 +213,75 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
       });
     }
   }, [isRecording, toast]);
-  
+
   // Handle feedback generation
   const generateFeedback = useCallback(async () => {
     if (!recordingBlob || !currentQuestion) return;
-    
+
     setIsFeedbackLoading(true);
     setFeedbackError(null);
-    
+
     try {
       // Create form data with the recording and metadata
       const formData = new FormData();
-      formData.append('audioBlob', recordingBlob, 'answer.webm');
+
+      // Make sure to use a proper mime type for the audio blob
+      // Use a smaller audio segment for testing if needed
+      const audioFile = new File(
+        [recordingBlob.slice(0, Math.min(recordingBlob.size, 500000))], // Limit size for testing
+        'answer.webm',
+        { type: recordingBlob.type || 'audio/webm' }
+      );
+
+      formData.append('audioBlob', audioFile);
       formData.append('questionId', currentQuestion.id);
-      formData.append('sessionId', params.sessionId);
-      
-      // Send to the API
+      formData.append('sessionId', sessionId);
+
+      console.log('Audio file details:', {
+        name: audioFile.name,
+        type: audioFile.type,
+        size: audioFile.size,
+      });
+
+      // Try the API call with our modified endpoint
+      console.log('Sending feedback request...');
       const response = await fetch('/api/interviews/get-answer-feedback', {
         method: 'POST',
         body: formData,
       });
-      
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', {
+        contentType: response.headers.get('content-type'),
+      });
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate feedback');
+        let errorMessage = 'Failed to generate feedback';
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } else {
+          // If the response is not JSON, get the text
+          const errorText = await response.text();
+          console.error('Non-JSON error response:', errorText);
+          errorMessage = 'Received HTML error page instead of JSON. Check server logs.';
+        }
+        throw new Error(errorMessage);
       }
-      
+
+      // Parse the JSON response
       const data = await response.json();
       setFeedback(data.feedback);
-      
+
       toast({
         title: 'Feedback Generated',
         description: 'Your answer has been analyzed successfully.',
       });
     } catch (error) {
       console.error('Error generating feedback:', error);
-      setFeedbackError(
-        error instanceof Error ? error.message : 'Failed to generate feedback'
-      );
+      setFeedbackError(error instanceof Error ? error.message : 'Failed to generate feedback');
       toast({
         title: 'Feedback Error',
         description: 'Failed to analyze your answer. Please try again.',
@@ -263,8 +290,8 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
     } finally {
       setIsFeedbackLoading(false);
     }
-  }, [recordingBlob, currentQuestion, params.sessionId, toast]);
-  
+  }, [recordingBlob, currentQuestion, sessionId, toast]);
+
   if (isLoading) {
     return (
       <MainLayout>
@@ -275,17 +302,15 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
       </MainLayout>
     );
   }
-  
+
   return (
     <MainLayout>
       <div className="container max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-2">
-          Test Feedback Loop
-        </h1>
+        <h1 className="text-3xl font-bold mb-2">Test Feedback Loop</h1>
         <p className="text-muted-foreground mb-6">
           {session?.session_name || 'Interview Practice'} - Single Question Test
         </p>
-        
+
         {/* Question Card */}
         {currentQuestion && (
           <Card className="mb-8">
@@ -300,14 +325,14 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             </CardContent>
           </Card>
         )}
-        
+
         {/* Recording Controls */}
         <div className="mb-8">
           <h2 className="text-xl font-semibold mb-4">Record Your Answer</h2>
           <div className="space-y-4">
-            <Button 
+            <Button
               onClick={toggleRecording}
-              variant={isRecording ? "destructive" : "default"}
+              variant={isRecording ? 'destructive' : 'default'}
               size="lg"
               className="w-full md:w-auto"
             >
@@ -321,14 +346,14 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
                 </>
               )}
             </Button>
-            
+
             {/* Recording status */}
             {isRecording && (
               <div className="flex items-center mt-2 text-red-500">
                 <span className="animate-pulse mr-2">●</span> Recording in progress...
               </div>
             )}
-            
+
             {/* Audio playback */}
             {audioUrl && (
               <div className="bg-muted p-4 rounded-md">
@@ -338,11 +363,11 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             )}
           </div>
         </div>
-        
+
         {/* Generate Feedback Button */}
         <div className="mb-8">
-          <Button 
-            onClick={generateFeedback} 
+          <Button
+            onClick={generateFeedback}
             disabled={!recordingBlob || isFeedbackLoading}
             variant="secondary"
             size="lg"
@@ -359,7 +384,7 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             )}
           </Button>
         </div>
-        
+
         {/* Feedback Display */}
         {feedback && (
           <Card className="mb-8 border-green-200 bg-green-50 dark:bg-green-900/10">
@@ -374,17 +399,17 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
                 <h3 className="font-semibold text-lg mb-2">Overall Summary</h3>
                 <p>{feedback.overall_summary}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold text-lg mb-2">Strengths</h3>
                 <p>{feedback.strengths_feedback}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold text-lg mb-2">Areas for Improvement</h3>
                 <p>{feedback.areas_for_improvement_feedback}</p>
               </div>
-              
+
               <div>
                 <h3 className="font-semibold text-lg mb-2">Actionable Suggestions</h3>
                 <p>{feedback.actionable_suggestions}</p>
@@ -392,7 +417,7 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             </CardContent>
           </Card>
         )}
-        
+
         {/* Error Display */}
         {feedbackError && (
           <Card className="mb-8 border-red-200 bg-red-50 dark:bg-red-900/10">
@@ -404,21 +429,20 @@ export default function TestFeedbackPage({ params }: { params: { sessionId: stri
             </CardHeader>
             <CardContent>
               <p>{feedbackError}</p>
-              <p className="mt-2">Please try recording your answer again or contact support if the problem persists.</p>
+              <p className="mt-2">
+                Please try recording your answer again or contact support if the problem persists.
+              </p>
             </CardContent>
           </Card>
         )}
-        
+
         {/* Back to Dashboard Button */}
         <div className="text-center mt-12">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/dashboard')}
-          >
+          <Button variant="outline" onClick={() => router.push('/dashboard')}>
             Back to Dashboard
           </Button>
         </div>
       </div>
     </MainLayout>
   );
-} 
+}

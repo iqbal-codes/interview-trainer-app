@@ -34,12 +34,14 @@ An interactive web application that helps job seekers prepare for interviews usi
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/yourusername/interview-trainer-app.git
    cd interview-trainer-app
    ```
 
 2. Install dependencies:
+
    ```bash
    yarn install
    ```
@@ -47,6 +49,7 @@ An interactive web application that helps job seekers prepare for interviews usi
 3. Create a `.env.local` file based on `.env.example` and fill in your API keys.
 
 4. Run the development server:
+
    ```bash
    yarn dev
    ```
@@ -87,11 +90,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 In this phase, we've implemented:
 
 1. **LLM Integration for Question Generation**
+
    - Updated `/api/interviews/generate` to use the Vercel AI SDK with Google Generative AI
    - Implemented robust parsing of LLM responses
    - Enhanced error handling for LLM API calls
 
 2. **Vapi Webhook Implementation**
+
    - Created `/api/vapi/assistant` webhook to handle Vapi requests
    - Implemented logic to process user speech and save answers
    - Added functionality to send questions to Vapi and manage interview flow

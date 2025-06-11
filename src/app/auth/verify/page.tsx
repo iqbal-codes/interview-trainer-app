@@ -1,5 +1,5 @@
-import { MainLayout } from "@/components/layout/main-layout";
-import { VerifyEmail } from "@/components/auth/verify-email";
+import { MainLayout } from '@/components/layout/main-layout';
+import { VerifyEmail } from '@/components/auth/verify-email';
 
 export default function VerifyPage() {
   return (
@@ -9,4 +9,4 @@ export default function VerifyPage() {
       </div>
     </MainLayout>
   );
-} 
+}

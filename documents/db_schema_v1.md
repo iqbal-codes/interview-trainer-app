@@ -3,6 +3,7 @@
 This document outlines the database schema for the AI-Powered Interview Practice Platform. It's designed for use with Supabase, leveraging PostgreSQL.
 
 ## Table of Contents
+
 - users (Handled by Supabase Auth)
 - profiles
 - cv_uploads
@@ -12,20 +13,24 @@ This document outlines the database schema for the AI-Powered Interview Practice
 - ai_feedback
 
 ## 1. users Table (Handled by Supabase Auth)
+
 This table is automatically created and managed by Supabase Authentication. We will reference its id (UUID) as a foreign key in other tables.
 
 **Key Columns (provided by Supabase Auth):**
+
 - **id** (UUID, Primary Key): Unique identifier for the user.
 - **email** (VARCHAR): User's email address.
 - **created_at** (TIMESTAMPTZ): Timestamp of user creation.
 - Other auth-related fields.
 
 ## 2. profiles Table
+
 Stores additional user-specific information not covered by Supabase Auth, including onboarding details.
 
 **Table Name:** profiles
 
 **Columns:**
+
 - **user_id** (UUID, Primary Key, Foreign Key -> auth.users.id ON DELETE CASCADE): Links to the users table in the auth schema.
 - **full_name** (TEXT, Nullable): User's full name.
 - **years_of_experience** (INT, Nullable): User's years of professional experience.
@@ -37,11 +42,13 @@ Stores additional user-specific information not covered by Supabase Auth, includ
 - **updated_at** (TIMESTAMPTZ, Default: now()): Timestamp of last profile update.
 
 ## 3. cv_uploads Table
+
 Stores metadata about CV files uploaded by users. Actual files will be stored in Supabase Storage.
 
 **Table Name:** cv_uploads
 
 **Columns:**
+
 - **id** (UUID, Primary Key, Default: gen_random_uuid()): Unique identifier for the CV upload.
 - **user_id** (UUID, Foreign Key -> auth.users.id ON DELETE CASCADE): Links to the users table.
 - **file_name** (TEXT, Not Null): Original name of the uploaded file.
@@ -54,11 +61,13 @@ Stores metadata about CV files uploaded by users. Actual files will be stored in
 > **Note:** When a new CV is uploaded and marked as is_current_cv = true, previous CVs for that user might be set to is_current_cv = false. The profiles.cv_text_content would be updated from this current CV.
 
 ## 4. interview_sessions Table
+
 Stores information about each mock interview session a user undertakes.
 
 **Table Name:** interview_sessions
 
 **Columns:**
+
 - **id** (UUID, Primary Key, Default: gen_random_uuid()): Unique identifier for the interview session.
 - **user_id** (UUID, Foreign Key -> auth.users.id ON DELETE CASCADE): The user who undertook the interview.
 - **session_name** (TEXT, Nullable, Default: 'Practice Interview'): A user-friendly name for the session (e.g., "Software Engineer - Behavioral").
@@ -75,11 +84,13 @@ Stores information about each mock interview session a user undertakes.
 - **created_at** (TIMESTAMPTZ, Default: now()): Timestamp of session creation.
 
 ## 5. interview_questions Table
+
 Stores the questions that were generated and asked during an interview session.
 
 **Table Name:** interview_questions
 
 **Columns:**
+
 - **id** (UUID, Primary Key, Default: gen_random_uuid()): Unique identifier for the question.
 - **session_id** (UUID, Foreign Key -> interview_sessions.id ON DELETE CASCADE): Links to the specific interview session.
 - **question_text** (TEXT, Not Null): The text of the interview question.
@@ -88,11 +99,13 @@ Stores the questions that were generated and asked during an interview session.
 - **generated_at** (TIMESTAMPTZ, Default: now()): Timestamp of when the question was generated/added to the session.
 
 ## 6. interview_answers Table
+
 Stores the user's transcribed answers to the interview questions.
 
 **Table Name:** interview_answers
 
 **Columns:**
+
 - **id** (UUID, Primary Key, Default: gen_random_uuid()): Unique identifier for the answer.
 - **question_id** (UUID, Foreign Key -> interview_questions.id ON DELETE CASCADE): Links to the specific question that was answered.
 - **session_id** (UUID, Foreign Key -> interview_sessions.id ON DELETE CASCADE): Links to the interview session (for easier querying).
@@ -102,11 +115,13 @@ Stores the user's transcribed answers to the interview questions.
 - **audio_storage_path** (TEXT, Nullable): Path to the Vapi audio recording of the answer in Supabase Storage, if saved.
 
 ## 7. ai_feedback Table
+
 Stores the AI-generated feedback for a completed interview session.
 
 **Table Name:** ai_feedback
 
 **Columns:**
+
 - **id** (UUID, Primary Key, Default: gen_random_uuid()): Unique identifier for the feedback entry.
 - **session_id** (UUID, Foreign Key -> interview_sessions.id ON DELETE CASCADE, Unique): Links to the specific interview session. Ensures one feedback entry per session.
 - **user_id** (UUID, Foreign Key -> auth.users.id ON DELETE CASCADE): Links to the user.

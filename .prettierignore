@@ -1,0 +1,12 @@
+.next/
+node_modules/
+public/
+build/
+dist/
+out/
+*.d.ts
+.yarn/
+.pnp.*
+package.json
+package-lock.json
+yarn.lock 

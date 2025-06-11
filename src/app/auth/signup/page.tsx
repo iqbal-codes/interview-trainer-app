@@ -1,10 +1,10 @@
-import { MainLayout } from "@/components/layout/main-layout";
-import { SignUpForm } from "@/components/auth/signup-form";
-import { Metadata } from "next";
+import { MainLayout } from '@/components/layout/main-layout';
+import { SignUpForm } from '@/components/auth/signup-form';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Sign Up | AI Interview Practice",
-  description: "Create an account for AI Interview Practice",
+  title: 'Sign Up | AI Interview Practice',
+  description: 'Create an account for AI Interview Practice',
 };
 
 export default function SignUpPage() {

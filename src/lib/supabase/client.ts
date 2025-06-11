@@ -3,4 +3,4 @@ import { type Database } from './types';
 
 export const createClient = () => {
   return createClientComponentClient<Database>();
-}; 
+};

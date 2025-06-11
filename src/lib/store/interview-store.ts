@@ -20,7 +20,7 @@ interface InterviewStore {
   session: InterviewSession | null;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   initializeSession: (jobTitle: string, jobDescription?: string) => void;
   setCurrentQuestion: (index: number) => void;
@@ -31,11 +31,11 @@ interface InterviewStore {
   resetSession: () => void;
 }
 
-export const useInterviewStore = create<InterviewStore>((set) => ({
+export const useInterviewStore = create<InterviewStore>(set => ({
   session: null,
   isLoading: false,
   error: null,
-  
+
   initializeSession: (jobTitle: string, jobDescription?: string) => {
     set({
       session: {
@@ -49,11 +49,11 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       error: null,
     });
   },
-  
+
   setCurrentQuestion: (index: number) => {
     set((state: InterviewStore) => {
       if (!state.session) return state;
-      
+
       return {
         session: {
           ...state.session,
@@ -62,16 +62,16 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       };
     });
   },
-  
+
   addQuestion: (question: string) => {
     set((state: InterviewStore) => {
       if (!state.session) return state;
-      
+
       const newQuestion: InterviewQuestion = {
         id: `q-${Date.now()}`,
         question,
       };
-      
+
       return {
         session: {
           ...state.session,
@@ -82,18 +82,18 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       };
     });
   },
-  
+
   updateAnswer: (questionId: string, answer: string) => {
     set((state: InterviewStore) => {
       if (!state.session) return state;
-      
-      const updatedQuestions = state.session.questions.map((q) => {
+
+      const updatedQuestions = state.session.questions.map(q => {
         if (q.id === questionId) {
           return { ...q, answer };
         }
         return q;
       });
-      
+
       return {
         session: {
           ...state.session,
@@ -102,18 +102,18 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       };
     });
   },
-  
+
   updateFeedback: (questionId: string, feedback: string) => {
     set((state: InterviewStore) => {
       if (!state.session) return state;
-      
-      const updatedQuestions = state.session.questions.map((q) => {
+
+      const updatedQuestions = state.session.questions.map(q => {
         if (q.id === questionId) {
           return { ...q, feedback };
         }
         return q;
       });
-      
+
       return {
         session: {
           ...state.session,
@@ -122,11 +122,11 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       };
     });
   },
-  
+
   completeSession: () => {
     set((state: InterviewStore) => {
       if (!state.session) return state;
-      
+
       return {
         session: {
           ...state.session,
@@ -135,7 +135,7 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       };
     });
   },
-  
+
   resetSession: () => {
     set({
       session: null,
@@ -143,4 +143,4 @@ export const useInterviewStore = create<InterviewStore>((set) => ({
       error: null,
     });
   },
-})); 
+}));

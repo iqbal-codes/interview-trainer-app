@@ -1,10 +1,10 @@
-import { MainLayout } from "@/components/layout/main-layout";
-import { LoginForm } from "@/components/auth/login-form";
-import { Metadata } from "next";
+import { MainLayout } from '@/components/layout/main-layout';
+import { LoginForm } from '@/components/auth/login-form';
+import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Login | AI Interview Practice",
-  description: "Login to your AI Interview Practice account",
+  title: 'Login | AI Interview Practice',
+  description: 'Login to your AI Interview Practice account',
 };
 
 export default function LoginPage() {
@@ -15,4 +15,4 @@ export default function LoginPage() {
       </div>
     </MainLayout>
   );
-} 
+}

@@ -4,4 +4,4 @@ import { type Database } from './types';
 
 export const createServerClient = () => {
   return createServerComponentClient<Database>({ cookies });
-}; 
+};

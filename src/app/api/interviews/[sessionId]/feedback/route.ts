@@ -1,46 +1,30 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
-import { NextRequest, NextResponse } from "next/server";
-import { Database } from "@/lib/supabase/types";
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import { Database } from '@/lib/supabase/types';
 
 // Mock LLM feedback generation function (to be replaced with actual LLM API call later)
 function generateMockFeedback(questions: any[], answers: any[]) {
   // Ensure we have answers to analyze
   if (!answers || answers.length === 0) {
-    throw new Error("No answers available to generate feedback");
+    throw new Error('No answers available to generate feedback');
   }
 
   // Create a simple analysis based on answer length and keywords
-  const answerTexts = answers.map((a) => a.answer_transcript_text || "");
-  const totalLength = answerTexts.join(" ").length;
+  const answerTexts = answers.map(a => a.answer_transcript_text || '');
+  const totalLength = answerTexts.join(' ').length;
   const avgLength = totalLength / answerTexts.length;
 
   // Simple keyword detection for demonstration purposes
-  const specificKeywords = [
-    "specific",
-    "example",
-    "situation",
-    "result",
-    "outcome",
-    "learned",
-  ];
-  const fillerWords = [
-    "um",
-    "like",
-    "you know",
-    "sort of",
-    "kind of",
-    "basically",
-  ];
+  const specificKeywords = ['specific', 'example', 'situation', 'result', 'outcome', 'learned'];
+  const fillerWords = ['um', 'like', 'you know', 'sort of', 'kind of', 'basically'];
 
   const specificCount = answerTexts.reduce((count, text) => {
     return (
       count +
       specificKeywords.reduce(
         (c, keyword) =>
-          c +
-          (text.toLowerCase().match(new RegExp(`\\b${keyword}\\b`, "g")) || [])
-            .length,
+          c + (text.toLowerCase().match(new RegExp(`\\b${keyword}\\b`, 'g')) || []).length,
         0
       )
     );
@@ -50,52 +34,47 @@ function generateMockFeedback(questions: any[], answers: any[]) {
     return (
       count +
       fillerWords.reduce(
-        (c, word) =>
-          c +
-          (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, "g")) || [])
-            .length,
+        (c, word) => c + (text.toLowerCase().match(new RegExp(`\\b${word}\\b`, 'g')) || []).length,
         0
       )
     );
   }, 0);
 
   // Generate feedback based on simple metrics
-  let overallSummary = "";
-  let strengthsFeedback = "";
-  let areasForImprovement = "";
-  let actionableSuggestions = "";
+  let overallSummary = '';
+  let strengthsFeedback = '';
+  let areasForImprovement = '';
+  let actionableSuggestions = '';
 
   // Overall summary based on answer length
   if (avgLength < 50) {
     overallSummary =
-      "Your responses were quite brief. In most interview situations, more detailed answers would be beneficial.";
+      'Your responses were quite brief. In most interview situations, more detailed answers would be beneficial.';
   } else if (avgLength < 150) {
     overallSummary =
-      "Your responses were concise but could benefit from more detail in some areas.";
+      'Your responses were concise but could benefit from more detail in some areas.';
   } else if (avgLength < 300) {
-    overallSummary =
-      "Your responses had a good balance of detail and conciseness.";
+    overallSummary = 'Your responses had a good balance of detail and conciseness.';
   } else {
     overallSummary =
-      "Your responses were very detailed, which shows thoroughness, though some could be more focused.";
+      'Your responses were very detailed, which shows thoroughness, though some could be more focused.';
   }
 
   // Strengths based on specific examples
   if (specificCount > 5) {
     strengthsFeedback =
-      "You provided specific examples and situations in your answers, which makes your responses more credible and memorable.";
+      'You provided specific examples and situations in your answers, which makes your responses more credible and memorable.';
   } else {
-    strengthsFeedback =
-      "Some of your answers included specific details, which is good.";
+    strengthsFeedback = 'Some of your answers included specific details, which is good.';
   }
 
   // Areas for improvement based on filler words
   if (fillerCount > 10) {
     areasForImprovement =
-      "Your responses contained several filler words and phrases that could be reduced to make your communication more confident and clear.";
+      'Your responses contained several filler words and phrases that could be reduced to make your communication more confident and clear.';
   } else {
     areasForImprovement =
-      "Your communication was generally clear, with minimal use of filler words.";
+      'Your communication was generally clear, with minimal use of filler words.';
   }
 
   // Actionable suggestions
@@ -112,15 +91,11 @@ function generateMockFeedback(questions: any[], answers: any[]) {
     strengths_feedback: strengthsFeedback,
     areas_for_improvement_feedback: areasForImprovement,
     actionable_suggestions: actionableSuggestions,
-    overall_score_qualitative:
-      avgLength > 100 && specificCount > 3 ? "Good" : "Needs Improvement",
+    overall_score_qualitative: avgLength > 100 && specificCount > 3 ? 'Good' : 'Needs Improvement',
   };
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { sessionId: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { sessionId: string } }) {
   try {
     const sessionId = params.sessionId;
 
@@ -132,36 +107,33 @@ export async function POST(
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Please log in" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
     }
 
     const userId = session.user.id;
 
     // Verify the session belongs to the user
     const { data: interviewSession, error: sessionError } = await supabase
-      .from("interview_sessions")
-      .select("*")
-      .eq("id", sessionId)
-      .eq("user_id", userId)
+      .from('interview_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
       .single();
 
     if (sessionError || !interviewSession) {
       return NextResponse.json(
         {
-          error: "Interview session not found or access denied",
+          error: 'Interview session not found or access denied',
         },
         { status: 404 }
       );
     }
 
     // Check if session is completed
-    if (interviewSession.status !== "completed") {
+    if (interviewSession.status !== 'completed') {
       return NextResponse.json(
         {
-          error: "Cannot generate feedback for an incomplete interview session",
+          error: 'Cannot generate feedback for an incomplete interview session',
         },
         { status: 400 }
       );
@@ -169,21 +141,20 @@ export async function POST(
 
     // Check if feedback already exists
     const { data: existingFeedback } = await supabase
-      .from("ai_feedback")
-      .select("*")
-      .eq("session_id", sessionId)
+      .from('ai_feedback')
+      .select('*')
+      .eq('session_id', sessionId)
       .single();
 
     // If feedback exists and no regenerate flag is set, return existing feedback
     if (existingFeedback) {
       return NextResponse.json({
-        message: "Feedback already exists for this session",
+        message: 'Feedback already exists for this session',
         session_id: sessionId,
         feedback: {
           overall_summary: existingFeedback.overall_summary,
           strengths_feedback: existingFeedback.strengths_feedback,
-          areas_for_improvement_feedback:
-            existingFeedback.areas_for_improvement_feedback,
+          areas_for_improvement_feedback: existingFeedback.areas_for_improvement_feedback,
           actionable_suggestions: existingFeedback.actionable_suggestions,
           overall_score_qualitative: existingFeedback.overall_score_qualitative,
         },
@@ -192,20 +163,20 @@ export async function POST(
 
     // Fetch questions and answers for the session
     const { data: questions } = await supabase
-      .from("interview_questions")
-      .select("*")
-      .eq("session_id", sessionId)
-      .order("question_order", { ascending: true });
+      .from('interview_questions')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('question_order', { ascending: true });
 
     const { data: answers } = await supabase
-      .from("interview_answers")
-      .select("*")
-      .eq("session_id", sessionId);
+      .from('interview_answers')
+      .select('*')
+      .eq('session_id', sessionId);
 
     if (!answers || answers.length === 0) {
       return NextResponse.json(
         {
-          error: "No answers found for this session",
+          error: 'No answers found for this session',
         },
         { status: 404 }
       );
@@ -217,7 +188,7 @@ export async function POST(
 
     // Save feedback to database
     const { error: feedbackError } = await supabase
-      .from("ai_feedback")
+      .from('ai_feedback')
       .insert({
         session_id: sessionId,
         user_id: userId,
@@ -242,7 +213,7 @@ export async function POST(
 
     // Return success response
     return NextResponse.json({
-      message: "Feedback generated successfully",
+      message: 'Feedback generated successfully',
       session_id: sessionId,
       feedback: {
         overall_summary: feedback.overall_summary,
@@ -253,7 +224,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error("Feedback generation error:", error);
+    console.error('Feedback generation error:', error);
     return NextResponse.json(
       {
         error: `An unexpected error occurred: ${(error as Error).message}`,
@@ -264,10 +235,7 @@ export async function POST(
 }
 
 // GET endpoint to retrieve existing feedback
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { sessionId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { sessionId: string } }) {
   try {
     const sessionId = params.sessionId;
 
@@ -279,26 +247,23 @@ export async function GET(
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized: Please log in" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized: Please log in' }, { status: 401 });
     }
 
     const userId = session.user.id;
 
     // Verify the session belongs to the user
     const { data: interviewSession, error: sessionError } = await supabase
-      .from("interview_sessions")
-      .select("*")
-      .eq("id", sessionId)
-      .eq("user_id", userId)
+      .from('interview_sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
       .single();
 
     if (sessionError || !interviewSession) {
       return NextResponse.json(
         {
-          error: "Interview session not found or access denied",
+          error: 'Interview session not found or access denied',
         },
         { status: 404 }
       );
@@ -306,15 +271,15 @@ export async function GET(
 
     // Fetch feedback
     const { data: feedback, error: feedbackError } = await supabase
-      .from("ai_feedback")
-      .select("*")
-      .eq("session_id", sessionId)
+      .from('ai_feedback')
+      .select('*')
+      .eq('session_id', sessionId)
       .single();
 
     if (feedbackError || !feedback) {
       return NextResponse.json(
         {
-          error: "Feedback not found for this session",
+          error: 'Feedback not found for this session',
         },
         { status: 404 }
       );
@@ -322,7 +287,7 @@ export async function GET(
 
     // Return feedback
     return NextResponse.json({
-      message: "Feedback retrieved successfully",
+      message: 'Feedback retrieved successfully',
       session_id: sessionId,
       feedback: {
         overall_summary: feedback.overall_summary,
@@ -334,7 +299,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Feedback retrieval error:", error);
+    console.error('Feedback retrieval error:', error);
     return NextResponse.json(
       {
         error: `An unexpected error occurred: ${(error as Error).message}`,
@@ -343,4 +308,3 @@ export async function GET(
     );
   }
 }
-

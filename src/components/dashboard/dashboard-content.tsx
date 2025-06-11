@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { useAuth } from "@/lib/context/auth-context";
-import { InterviewStats } from "./interview-stats";
-import { InterviewSessionsList } from "./interview-sessions-list";
-import { InterviewSetupForm } from "@/components/interview/interview-setup-form";
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/lib/context/auth-context';
+import { InterviewStats } from './interview-stats';
+import { InterviewSessionsList } from './interview-sessions-list';
+import { InterviewSetupForm } from '@/components/interview/interview-setup-form';
 
 export function DashboardContent() {
   const [hasInterviews, setHasInterviews] = useState<boolean | null>(null);
@@ -16,30 +16,30 @@ export function DashboardContent() {
   useEffect(() => {
     const checkInterviews = async () => {
       if (!user) return;
-      
+
       setIsLoading(true);
-      
+
       try {
         // Check if the user has any interview sessions
         const { count, error } = await supabase
-          .from("interview_sessions")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
-          
+          .from('interview_sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
         if (error) throw error;
-        
+
         setHasInterviews(count !== null && count > 0);
       } catch (error) {
-        console.error("Error checking interview sessions:", error);
+        console.error('Error checking interview sessions:', error);
         setHasInterviews(false);
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     checkInterviews();
   }, [user, supabase]);
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -47,7 +47,7 @@ export function DashboardContent() {
       </div>
     );
   }
-  
+
   // If the user has no interviews, show the setup form
   if (hasInterviews === false) {
     return (
@@ -58,13 +58,11 @@ export function DashboardContent() {
             Get started by setting up your first interview practice session
           </p>
         </div>
-        <InterviewSetupForm 
-          onSuccess={() => setHasInterviews(true)}
-        />
+        <InterviewSetupForm onSuccess={() => setHasInterviews(true)} />
       </div>
     );
   }
-  
+
   // If the user has interviews, show the stats and list
   return (
     <div className="space-y-8">
@@ -72,4 +70,4 @@ export function DashboardContent() {
       <InterviewSessionsList />
     </div>
   );
-} 
+}

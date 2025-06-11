@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -9,9 +9,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { useInterview } from "@/lib/hooks/use-interview";
-import { useToast } from "@/components/ui/use-toast";
+} from '@/components/ui/card';
+import { useInterview } from '@/lib/hooks/use-interview';
+import { useToast } from '@/components/ui/use-toast';
 
 interface InterviewSessionProps {
   jobTitle: string;
@@ -19,51 +19,38 @@ interface InterviewSessionProps {
   onComplete?: () => void;
 }
 
-export function InterviewSession({
-  jobTitle,
-  jobDescription,
-  onComplete,
-}: InterviewSessionProps) {
+export function InterviewSession({ jobTitle, jobDescription, onComplete }: InterviewSessionProps) {
   const { toast } = useToast();
   const [transcript, setTranscript] = useState<string[]>([]);
 
-  const {
-    isLoading,
-    error,
-    isActive,
-    startInterview,
-    endInterview,
-    session,
-  } = useInterview({
+  const { isLoading, error, isActive, startInterview, endInterview, session } = useInterview({
     onInterviewStart: () => {
       toast({
-        title: "Interview Started",
-        description:
-          "Your interview session has begun. Speak clearly into your microphone.",
+        title: 'Interview Started',
+        description: 'Your interview session has begun. Speak clearly into your microphone.',
       });
     },
     onInterviewEnd: () => {
       toast({
-        title: "Interview Completed",
-        description:
-          "Your interview session has ended. You can now view your feedback.",
+        title: 'Interview Completed',
+        description: 'Your interview session has ended. You can now view your feedback.',
       });
       onComplete?.();
     },
-    onQuestionReceived: (question) => {
-      setTranscript((prev) => [...prev, `Interviewer: ${question}`]);
+    onQuestionReceived: question => {
+      setTranscript(prev => [...prev, `Interviewer: ${question}`]);
     },
-    onTranscriptUpdate: (text) => {
-      setTranscript((prev) => [...prev, `You: ${text}`]);
+    onTranscriptUpdate: text => {
+      setTranscript(prev => [...prev, `You: ${text}`]);
     },
   });
 
   useEffect(() => {
     if (error) {
       toast({
-        title: "Error",
+        title: 'Error',
         description: error,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   }, [error, toast]);
@@ -83,8 +70,8 @@ export function InterviewSession({
           <CardTitle>Interview Session: {jobTitle}</CardTitle>
           <CardDescription>
             {isActive
-              ? "Your interview is in progress. Speak clearly and answer the questions."
-              : "Click Start to begin your interview session."}
+              ? 'Your interview is in progress. Speak clearly and answer the questions.'
+              : 'Click Start to begin your interview session.'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -105,19 +92,14 @@ export function InterviewSession({
               {transcript.length > 0 ? (
                 <div className="space-y-2">
                   {transcript.map((line, index) => (
-                    <p
-                      key={index}
-                      className={
-                        line.startsWith("Interviewer") ? "font-medium" : ""
-                      }
-                    >
+                    <p key={index} className={line.startsWith('Interviewer') ? 'font-medium' : ''}>
                       {line}
                     </p>
                   ))}
                 </div>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  {isLoading ? "Connecting..." : "Transcript will appear here"}
+                  {isLoading ? 'Connecting...' : 'Transcript will appear here'}
                 </div>
               )}
             </div>
@@ -126,9 +108,7 @@ export function InterviewSession({
               <div>
                 <h3 className="font-medium mb-2">Questions Asked:</h3>
                 <ul className="list-disc pl-5 space-y-1">
-                  {session?.questions?.map((q) => (
-                    <li key={q.id}>{q.question}</li>
-                  ))}
+                  {session?.questions?.map(q => <li key={q.id}>{q.question}</li>)}
                 </ul>
               </div>
             )}
@@ -137,7 +117,7 @@ export function InterviewSession({
         <CardFooter className="flex justify-between">
           {!isActive ? (
             <Button onClick={handleStart} disabled={isLoading}>
-              {isLoading ? "Connecting..." : "Start Interview"}
+              {isLoading ? 'Connecting...' : 'Start Interview'}
             </Button>
           ) : (
             <Button onClick={handleEnd} variant="destructive">

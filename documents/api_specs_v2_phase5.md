@@ -185,4 +185,3 @@ This document updates and details specifications for API routes critical in Phas
   ```json
   { "error": "Error message for internal logging" }
   ```
-

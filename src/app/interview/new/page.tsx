@@ -1,5 +1,5 @@
-import { MainLayout } from "@/components/layout/main-layout";
-import { InterviewForm } from "@/components/interview/interview-form";
+import { MainLayout } from '@/components/layout/main-layout';
+import { InterviewForm } from '@/components/interview/interview-form';
 
 export default function NewInterviewPage() {
   return (
@@ -10,4 +10,4 @@ export default function NewInterviewPage() {
       </div>
     </MainLayout>
   );
-} 
+}

@@ -2,15 +2,22 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { MainLayout } from "@/components/layout/main-layout";
+import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { useInterviewStore } from '@/lib/store/interview-store';
 
 export default function InterviewResultsPage() {
   const router = useRouter();
   const { session } = useInterviewStore();
-  
+
   useEffect(() => {
     // If there's no session, redirect to the new interview page
     if (!session) {
@@ -36,9 +43,7 @@ export default function InterviewResultsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Interview Summary</CardTitle>
-              <CardDescription>
-                Job Title: {session.jobTitle}
-              </CardDescription>
+              <CardDescription>Job Title: {session.jobTitle}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -47,13 +52,20 @@ export default function InterviewResultsPage() {
                 </p>
                 <div className="mt-4 p-4 bg-muted rounded-lg">
                   <p className="italic">
-                    &quot;Overall, you performed well in the interview. You demonstrated good communication skills and provided relevant examples. Areas for improvement include being more specific with your achievements and preparing more concise responses.&quot;
+                    &quot;Overall, you performed well in the interview. You demonstrated good
+                    communication skills and provided relevant examples. Areas for improvement
+                    include being more specific with your achievements and preparing more concise
+                    responses.&quot;
                   </p>
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" className="w-full" onClick={() => router.push('/interview/new')}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push('/interview/new')}
+              >
                 Start a New Interview
               </Button>
             </CardFooter>
@@ -62,9 +74,7 @@ export default function InterviewResultsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Questions & Feedback</CardTitle>
-              <CardDescription>
-                Review your answers and feedback for each question
-              </CardDescription>
+              <CardDescription>Review your answers and feedback for each question</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
@@ -72,18 +82,21 @@ export default function InterviewResultsPage() {
                   <div key={question.id} className="border rounded-lg p-4">
                     <h3 className="font-bold text-lg mb-2">Question {index + 1}</h3>
                     <p className="mb-4">{question.question}</p>
-                    
+
                     {question.answer && (
                       <div className="mb-4">
-                        <h4 className="font-medium text-sm text-muted-foreground mb-1">Your Answer:</h4>
+                        <h4 className="font-medium text-sm text-muted-foreground mb-1">
+                          Your Answer:
+                        </h4>
                         <p className="pl-4 border-l-2 border-muted">{question.answer}</p>
                       </div>
                     )}
-                    
+
                     <div>
                       <h4 className="font-medium text-sm text-muted-foreground mb-1">Feedback:</h4>
                       <p className="pl-4 border-l-2 border-primary">
-                        {question.feedback || "Your answer was clear and concise. Consider adding specific examples to strengthen your response."}
+                        {question.feedback ||
+                          'Your answer was clear and concise. Consider adding specific examples to strengthen your response.'}
                       </p>
                     </div>
                   </div>
@@ -95,4 +108,4 @@ export default function InterviewResultsPage() {
       </div>
     </MainLayout>
   );
-} 
+}

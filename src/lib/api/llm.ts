@@ -19,7 +19,7 @@ export async function generateInterviewQuestions({
 }: GenerateQuestionsParams): Promise<string[]> {
   // In a real implementation, this would call the OpenAI API
   console.log(`Generating ${count} questions for ${jobTitle}`);
-  
+
   // Mock implementation for now
   return [
     'Tell me about your experience with this role.',
@@ -36,18 +36,18 @@ export async function generateFeedback({
 }: GenerateFeedbackParams): Promise<string> {
   // In a real implementation, this would call the OpenAI API
   console.log(`Generating feedback for answer to: ${question}`);
-  
+
   // Mock implementation for now
   return 'Your answer was clear and concise. Consider adding specific examples to strengthen your response.';
 }
 
 export async function generateInterviewSummary(
   questions: string[],
-  answers: string[],
+  answers: string[]
 ): Promise<string> {
   // In a real implementation, this would call the OpenAI API
   console.log(`Generating summary for ${questions.length} questions`);
-  
+
   // Mock implementation for now
   return 'Overall, you performed well in the interview. You demonstrated good communication skills and provided relevant examples. Areas for improvement include being more specific with your achievements and preparing more concise responses.';
-} 
+}

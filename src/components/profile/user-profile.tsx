@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CVUpload } from "@/components/profile/cv-upload";
-import { createClient } from "@/lib/supabase/client";
-import { User } from "@supabase/supabase-js";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CVUpload } from '@/components/profile/cv-upload';
+import { createClient } from '@/lib/supabase/client';
+import { User } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 interface Profile {
   full_name: string | null;
@@ -33,31 +33,33 @@ export function UserProfile() {
   useEffect(() => {
     const fetchUserData = async () => {
       setIsLoading(true);
-      
+
       try {
         const supabase = createClient();
-        
+
         // Get current user
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           return;
         }
-        
+
         setUser(session.user);
-        
+
         // Get user profile
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, cv_text_content')
           .eq('user_id', session.user.id)
           .single();
-          
+
         if (profileError) {
           throw profileError;
         }
-        
+
         setProfile(profileData);
-        
+
         // Get current CV
         const { data: cvData, error: cvError } = await supabase
           .from('cv_uploads')
@@ -67,7 +69,7 @@ export function UserProfile() {
           .order('uploaded_at', { ascending: false })
           .limit(1)
           .single();
-          
+
         if (!cvError) {
           setCurrentCv(cvData);
         }
@@ -78,7 +80,7 @@ export function UserProfile() {
         setIsLoading(false);
       }
     };
-    
+
     fetchUserData();
   }, []);
 
@@ -88,7 +90,7 @@ export function UserProfile() {
       file_name: data.file_name,
       uploaded_at: new Date().toISOString(),
     });
-    
+
     // Update the CV text preview
     if (profile && data.cv_text_preview) {
       setProfile({
@@ -109,21 +111,25 @@ export function UserProfile() {
   return (
     <div className="py-8">
       <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
-      
+
       {/* User Information Section */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>Account Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <p><strong>Email:</strong> {user.email}</p>
+          <p>
+            <strong>Email:</strong> {user.email}
+          </p>
           {profile?.full_name && (
-            <p><strong>Name:</strong> {profile.full_name}</p>
+            <p>
+              <strong>Name:</strong> {profile.full_name}
+            </p>
           )}
           {/* Future: Display additional profile fields */}
         </CardContent>
       </Card>
-      
+
       {/* CV Upload Section */}
       <CVUpload
         currentCvName={currentCv?.file_name}
@@ -133,4 +139,4 @@ export function UserProfile() {
       />
     </div>
   );
-} 
+}

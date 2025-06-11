@@ -1,9 +1,8 @@
 import OpenAI from 'openai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateText } from 'ai';
-import fs from 'fs';
-import os from 'os';
-import path from 'path';
+import { GoogleGenAI } from '@google/genai';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -11,9 +10,7 @@ const openai = new OpenAI({
 });
 
 // Initialize Google Generative AI
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY as string,
-});
+const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
 
 /**
  * Transcribes audio using OpenAI's Whisper API
@@ -67,19 +64,24 @@ export async function getLLMFeedback(transcript: string): Promise<object> {
       Return ONLY the JSON object, with no additional text before or after.
     `;
 
-    // Call the LLM using Vercel AI SDK
-    const { text: generatedFeedback } = await generateText({
-      model: google('gemini-2.5-flash-preview-04-17'),
-      prompt,
-      temperature: 0.3,
-      maxTokens: 1024,
+    // Call the LLM using Google Generative AI
+    const response = await genai.models.generateContent({
+      model: 'gemini-2.5-flash-preview-04-17',
+      contents: prompt,
     });
+    
+    const generatedFeedback = response.text || '';
 
     // Parse the LLM's response into a JSON object
     try {
       // Extract JSON if the response contains additional text
       const jsonMatch = generatedFeedback.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : generatedFeedback;
+      
+      if (!jsonStr) {
+        throw new Error('Empty response from LLM');
+      }
+      
       return JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Error parsing LLM feedback response:', parseError);
@@ -111,4 +113,4 @@ export async function synthesizeSpeech(text: string): Promise<Buffer> {
     console.error('Error synthesizing speech:', error);
     throw new Error('Failed to synthesize speech');
   }
-} 
+}

@@ -1,11 +1,11 @@
-import { Metadata } from "next";
-import { ProtectedRoute } from "@/components/auth/protected-route";
-import { InterviewSetupForm } from "@/components/interview/interview-setup-form";
-import { MainLayout } from "@/components/layout/main-layout";
+import { Metadata } from 'next';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { InterviewSetupForm } from '@/components/interview/interview-setup-form';
+import { MainLayout } from '@/components/layout/main-layout';
 
 export const metadata: Metadata = {
-  title: "New Interview | Interview Trainer",
-  description: "Set up a new interview practice session",
+  title: 'New Interview | Interview Trainer',
+  description: 'Set up a new interview practice session',
 };
 
 export default function NewInterviewPage() {
@@ -19,4 +19,4 @@ export default function NewInterviewPage() {
       </ProtectedRoute>
     </MainLayout>
   );
-} 
+}

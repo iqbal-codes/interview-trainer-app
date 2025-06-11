@@ -1,11 +1,11 @@
-import { Metadata } from "next";
-import { ProtectedRoute } from "@/components/auth/protected-route";
-import { MainLayout } from "@/components/layout/main-layout";
-import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { Metadata } from 'next';
+import { ProtectedRoute } from '@/components/auth/protected-route';
+import { MainLayout } from '@/components/layout/main-layout';
+import { DashboardContent } from '@/components/dashboard/dashboard-content';
 
 export const metadata: Metadata = {
-  title: "Dashboard | Interview Trainer",
-  description: "Set up a new interview practice session",
+  title: 'Dashboard | Interview Trainer',
+  description: 'Set up a new interview practice session',
 };
 
 export default function DashboardPage() {

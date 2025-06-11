@@ -1,12 +1,12 @@
 // Inspired by react-hot-toast library
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 
 export type ToastProps = {
   id: string;
   title?: string;
   description?: string;
   action?: React.ReactNode;
-  variant?: "default" | "destructive";
+  variant?: 'default' | 'destructive';
 };
 
 export type Toast = ToastProps;
@@ -19,10 +19,10 @@ const TOAST_LIMIT = 5;
 const TOAST_REMOVE_DELAY = 1000;
 
 const actionTypes = {
-  ADD_TOAST: "ADD_TOAST",
-  UPDATE_TOAST: "UPDATE_TOAST",
-  DISMISS_TOAST: "DISMISS_TOAST",
-  REMOVE_TOAST: "REMOVE_TOAST",
+  ADD_TOAST: 'ADD_TOAST',
+  UPDATE_TOAST: 'UPDATE_TOAST',
+  DISMISS_TOAST: 'DISMISS_TOAST',
+  REMOVE_TOAST: 'REMOVE_TOAST',
 } as const;
 
 let count = 0;
@@ -36,19 +36,19 @@ type ActionType = typeof actionTypes;
 
 type Action =
   | {
-      type: ActionType["ADD_TOAST"];
+      type: ActionType['ADD_TOAST'];
       toast: ToastProps;
     }
   | {
-      type: ActionType["UPDATE_TOAST"];
+      type: ActionType['UPDATE_TOAST'];
       toast: Partial<ToastProps>;
     }
   | {
-      type: ActionType["DISMISS_TOAST"];
+      type: ActionType['DISMISS_TOAST'];
       toastId?: string;
     }
   | {
-      type: ActionType["REMOVE_TOAST"];
+      type: ActionType['REMOVE_TOAST'];
       toastId?: string;
     };
 
@@ -85,9 +85,7 @@ export const reducer = (state: State, action: Action): State => {
     case actionTypes.UPDATE_TOAST:
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
-        ),
+        toasts: state.toasts.map(t => (t.id === action.toast.id ? { ...t, ...action.toast } : t)),
       };
 
     case actionTypes.DISMISS_TOAST: {
@@ -96,14 +94,14 @@ export const reducer = (state: State, action: Action): State => {
       if (toastId) {
         addToRemoveQueue(toastId);
       } else {
-        state.toasts.forEach((toast) => {
+        state.toasts.forEach(toast => {
           addToRemoveQueue(toast.id);
         });
       }
 
       return {
         ...state,
-        toasts: state.toasts.map((t) =>
+        toasts: state.toasts.map(t =>
           t.id === toastId || toastId === undefined
             ? {
                 ...t,
@@ -122,7 +120,7 @@ export const reducer = (state: State, action: Action): State => {
       }
       return {
         ...state,
-        toasts: state.toasts.filter((t) => t.id !== action.toastId),
+        toasts: state.toasts.filter(t => t.id !== action.toastId),
       };
   }
 };
@@ -133,7 +131,7 @@ let memoryState: State = { toasts: [] };
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action);
-  listeners.forEach((listener) => {
+  listeners.forEach(listener => {
     listener(memoryState);
   });
 }
@@ -152,13 +150,13 @@ export function useToast({ duration = 5000 }: UseToastOptions = {}) {
   }, [state]);
 
   const toast = useCallback(
-    (props: Omit<ToastProps, "id">) => {
+    (props: Omit<ToastProps, 'id'>) => {
       const id = genId();
 
       const newToast = {
         ...props,
         id,
-        variant: props.variant || "default",
+        variant: props.variant || 'default',
       };
 
       dispatch({
@@ -190,4 +188,4 @@ export function useToast({ duration = 5000 }: UseToastOptions = {}) {
     toast,
     dismiss,
   };
-} 
+}

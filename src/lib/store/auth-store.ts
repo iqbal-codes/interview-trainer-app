@@ -12,7 +12,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // Actions
   setUser: (user: User | null) => void;
   setLoading: (isLoading: boolean) => void;
@@ -22,28 +22,28 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    set => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
-      
-      setUser: (user) => {
+
+      setUser: user => {
         set({
           user,
           isAuthenticated: !!user,
           error: null,
         });
       },
-      
-      setLoading: (isLoading) => {
+
+      setLoading: isLoading => {
         set({ isLoading });
       },
-      
-      setError: (error) => {
+
+      setError: error => {
         set({ error });
       },
-      
+
       logout: () => {
         set({
           user: null,
@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      partialize: state => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
     }
   )
-); 
+);
