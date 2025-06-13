@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'; // Corrected import for Pages Route
 import { GoogleGenAI, Modality, LiveServerMessage, Session, EndSensitivity, StartSensitivity } from '@google/genai';
 
 // Import your UI components
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -43,6 +43,10 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
   const genaiClientRef = useRef<GoogleGenAI | null>(null);
   const geminiSessionRef = useRef<Session | null>(null);
   const scheduledTime = useRef<number>(0);
+  const aiTranscriptedText = useRef<string>('');
+  const userTranscriptedText = useRef<string>('');
+  const conversationDataRef = useRef<ConversationTurn[]>([]);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
 
   // --- Refs for Web Audio API for smooth playback and interruption ---
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -52,10 +56,6 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
   const currentGainNode = useRef<GainNode | null>(null);
 
   const pcmStreamerNode = useRef<AudioWorkletNode | null>(null);
-
-  // --- Additional state and refs for recording conversation ---
-  const userAudioChunksRef = useRef<ArrayBuffer[]>([]);
-  const aiAudioChunksRef = useRef<ArrayBuffer[]>([]);
 
   const fetchInterviewData = useCallback(async (sessId: string) => {
     try {
@@ -165,7 +165,7 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
   };
 
   const handleEndInterrupt = () => {
-    console.log("User started speaking!");
+    console.log('user ended speaking');
     setIsSpeaking(false);
   }
 
@@ -173,8 +173,15 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
   const handleStartInterview = async () => {
     setSessionStatus('loading');
 
-    if (!audioContextRef.current) audioContextRef.current = new AudioContext();
-    if (audioContextRef.current.state === 'suspended') audioContextRef.current.resume();
+    if (!audioContextRef.current) {
+      // Initialize if it doesn't exist
+      audioContextRef.current = new AudioContext();
+      scheduledTime.current = 0; // Reset scheduled playback time
+    }
+    if (audioContextRef.current.state === 'suspended') {
+      // Resume it if it was created in a suspended state
+      await audioContextRef.current.resume();
+    }
 
     try {
       const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
@@ -194,20 +201,25 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
         model: 'gemini-2.0-flash-live-001',
         config: {
           outputAudioTranscription: {},
+          inputAudioTranscription: {},
           responseModalities: [Modality.AUDIO],
+          tools: [
+            {
+              functionDeclarations: [{ name: 'end_interview', description: 'End the interview' }]
+            }
+          ],
           realtimeInputConfig: {
             automaticActivityDetection: {
               disabled: false, // default
               startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_LOW,
               endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
-              prefixPaddingMs: 20,
-              silenceDurationMs: 500,
+              prefixPaddingMs: 50,
+              silenceDurationMs: 1000,
             }
           }
         },
         callbacks: {
           onopen: async () => {
-            console.log('Gemini Live session opened.');
             setSessionStatus('active');
             vad.start();
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -222,10 +234,6 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
               // Handle the new message format that includes sample rate information
               const { pcmData, sampleRate } = event.data;
 
-              // Record user audio for later transcription
-              const pcmBuffer = pcmData.buffer.slice(0);
-              userAudioChunksRef.current.push(pcmBuffer);
-
               // Downsample the audio to 16kHz for Gemini API
               const downsampledPcm = downsampleTo16kHz(pcmData, sampleRate);
 
@@ -238,32 +246,7 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
               });
             };
           },
-          onmessage: (message: LiveServerMessage) => {
-            console.log({ message })
-            if (message.data) {
-              setIsAiSpeaking(true);
-              // Use the optimized base64 conversion function
-              const audioChunk = base64ToArrayBuffer(message.data);
-
-              // Record AI audio for later transcription
-              aiAudioChunksRef.current.push(audioChunk);
-
-              audioQueue.current.push(audioChunk);
-
-              if (message.serverContent?.turnComplete) {
-                setIsAiSpeaking(false);
-              }
-              if (message.serverContent && message.serverContent.outputTranscription) {
-                console.debug('Received output transcription: %s\n', message.serverContent.outputTranscription.text);
-              }
-              if (!isPlayingAudio.current) {
-                processAudioQueue();
-              }
-            }
-
-            // Try to get any available transcript data
-            // This might work in some models but not in pure audio mode
-          },
+          onmessage: handleMessage,
           onerror: (e) => {
             console.error('Gemini Live Error:', e.message);
             setSessionStatus('error');
@@ -299,8 +282,9 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
         3. Rules of Engagement & Conversational Flow
         - Ask One Question at a Time: Do not list multiple questions at once.
         - Start the Interview: Begin the conversation by introducing yourself briefly and then asking the first question.
-        - Start from the first question: "Hello, my name is Alex, and I'll be conducting your mock interview today. I'm ready when you are. Let's start with your first question: ${sessionDetails?.questions[0].question_text}"
+        - Start from the first question: "Hello, my name is Alex, and I'll be conducting your mock interview today. I'm ready when you are. Let's start with your first question: ${mockSessionDetails?.questions[0].question_text}"
         - Listen Fully: Allow the candidate to finish their answer completely before you speak again. Do not interrupt.
+        - Be Adaptable: If the candidate asks for clarification on a question (e.g., "What do you mean by 'handle a setback'?"), you must provide a helpful, concise explanation. After clarifying, re-ask the original question or guide them back to it gracefully.
         - Keep Your Remarks Concise: After the candidate answers, provide a brief, neutral transition before moving to the next question.
         - Good Transition: "Thank you. Let's move on to the next question."
         - Good Transition: "Okay, that's helpful context. The next question is..."
@@ -308,13 +292,14 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
         - Do Not Give Feedback During the Interview: Your role during the session is to ask questions, not to provide real-time feedback or hints. All feedback will be generated and provided to the user after the session is complete.
         - End the Interview: Once the last question has been answered, provide a polite closing statement.
         - Example End: "Thank you for your time. That concludes our mock interview session. Your detailed feedback will be prepared and made available to you shortly."
+        - Please wait for candidate to reply your closing statement, and then you must use the end_interview tool to end the interview. if user do not reply your closing statement, you must use the end_interview tool to end the interview.
 
         Your strict adherence to these rules will ensure a standardized, fair, and effective practice experience for the candidate. Begin now.
       `;
 
-      // Send initial prompt to kick off the conversation
-      geminiSessionRef.current.sendClientContent({
-        turns: systemPrompt
+      // // Send initial prompt to kick off the conversation
+      geminiSessionRef.current.sendRealtimeInput({
+        text: systemPrompt,
       });
 
     } catch (error) {
@@ -324,74 +309,9 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
     }
   };
 
-  // --- Function to save transcript and get feedback ---
-  const saveTranscriptAndGetFeedback = async () => {
-    if (conversation.length === 0 && userAudioChunksRef.current.length === 0 && aiAudioChunksRef.current.length === 0) {
-      console.warn('No conversation data to save');
-      return;
-    }
-
-    setIsSavingTranscript(true);
-    try {
-      console.log('Processing audio and generating transcript...');
-
-      // If we have existing conversation data from real-time transcription, use that
-      if (conversation.length > 0) {
-        console.log('Using existing conversation transcript');
-        await sendTranscriptToAPI(conversation);
-        return;
-      }
-
-      // Otherwise, we need to transcribe the audio recordings
-      console.log('Transcribing recorded audio using Google Speech-to-Text...');
-
-      // Prepare audio data for transcription
-      const userAudioBlobs = await Promise.all(
-        userAudioChunksRef.current.map(chunk => {
-          // Convert ArrayBuffer to Blob
-          return new Blob([chunk], { type: 'audio/wav' });
-        })
-      );
-
-      const aiAudioBlobs = await Promise.all(
-        aiAudioChunksRef.current.map(chunk => {
-          // Convert ArrayBuffer to Blob
-          return new Blob([chunk], { type: 'audio/wav' });
-        })
-      );
-
-      // Combine user audio chunks into a single blob
-      const userAudioBlob = new Blob(userAudioBlobs, { type: 'audio/wav' });
-      const aiAudioBlob = new Blob(aiAudioBlobs, { type: 'audio/wav' });
-
-      // Create FormData for the API
-      const formData = new FormData();
-      formData.append('sessionId', sessionId);
-      formData.append('userAudio', userAudioBlob, 'user-audio.wav');
-      formData.append('aiAudio', aiAudioBlob, 'ai-audio.wav');
-
-      // Send to our API endpoint for transcription and feedback
-      const response = await fetch('/api/interviews/transcribe-and-get-feedback', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to process audio: ${response.statusText}`);
-      }
-
-      // Navigate to feedback page
-      router.push(`/interviews/${sessionId}/feedback`);
-    } catch (error) {
-      console.error('Error processing audio:', error);
-      alert('There was an error processing the interview audio. Please try again.');
-    } finally {
-      setIsSavingTranscript(false);
-    }
-  };
 
   // Helper function to send transcript to API
-  const sendTranscriptToAPI = async (conversationData: ConversationTurn[]) => {
+  const sendTranscriptToAPI = useCallback(async (conversationData: ConversationTurn[]) => {
     const response = await fetch('/api/interviews/save-transcript-and-get-feedback', {
       method: 'POST',
       headers: {
@@ -407,12 +327,33 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
       throw new Error(`Failed to save transcript: ${response.statusText}`);
     }
 
-    console.log('Transcript saved and feedback generated successfully');
     router.push(`/interviews/${sessionId}/feedback`);
-  };
+  }, [sessionId, router]);
+
+  // --- Function to save transcript and get feedback ---
+  const saveTranscriptAndGetFeedback = useCallback(async () => {
+    if (conversation.length === 0) {
+      console.warn('No conversation data to save');
+      return;
+    }
+
+    setIsSavingTranscript(true);
+    try {
+      console.log('Processing audio and generating transcript...');
+      await sendTranscriptToAPI(conversation);
+
+      // Navigate to feedback page
+      router.push(`/interviews/${sessionId}/feedback`);
+    } catch (error) {
+      console.error('Error processing audio:', error);
+      alert('There was an error processing the interview transcript. Please try again.');
+    } finally {
+      setIsSavingTranscript(false);
+    }
+  }, [conversation, sessionId, router, sendTranscriptToAPI]);
 
   // --- Function to Stop the Interview ---
-  const handleStopInterview = async () => {
+  const handleStopInterview = useCallback(async () => {
     geminiSessionRef.current?.close();
     if (pcmStreamerNode.current?.port) {
       pcmStreamerNode.current.port.close();
@@ -421,7 +362,58 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
 
     // Save transcript and get feedback
     await saveTranscriptAndGetFeedback();
-  };
+  }, [saveTranscriptAndGetFeedback]);
+
+  // --- VAD for speech detection ---
+  const vad = useMicVAD({
+    onSpeechEnd: handleEndInterrupt,
+    onSpeechStart: handleInterrupt,
+  })
+
+  const handleMessage = useCallback((message: LiveServerMessage) => {
+    if (message.data) {
+      if (userTranscriptedText.current !== '') {
+        conversationDataRef.current.push({ role: 'user', text: userTranscriptedText.current });
+        setConversation([...conversationDataRef.current]);
+        userTranscriptedText.current = '';
+        setUserInterimTranscript('');
+      }
+      setIsAiSpeaking(true);
+      // Use the optimized base64 conversion function
+      const audioChunk = base64ToArrayBuffer(message.data);
+
+      audioQueue.current.push(audioChunk);
+
+      if (!isPlayingAudio.current) {
+        processAudioQueue();
+      }
+    }
+
+    if (message.serverContent?.outputTranscription) {
+      aiTranscriptedText.current += message.serverContent.outputTranscription.text;
+    }
+
+    if (message.toolCall) {
+      handleStopInterview();
+      console.log('message.toolCall', message.toolCall);
+    }
+
+    if (message.serverContent?.turnComplete) {
+      setIsAiSpeaking(false);
+      conversationDataRef.current.push({ role: 'model', text: aiTranscriptedText.current });
+      setConversation([...conversationDataRef.current]);
+      aiTranscriptedText.current = '';
+    }
+
+    if (message.serverContent?.inputTranscription) {
+      console.log('message.serverContent.inputTranscription', message.serverContent.inputTranscription);
+      userTranscriptedText.current += message.serverContent.inputTranscription.text;
+      setUserInterimTranscript(userTranscriptedText.current);
+    }
+
+    // Try to get any available transcript data
+    // This might work in some models but not in pure audio mode
+  }, [handleStopInterview]);
 
   // --- Effect to fetch initial interview data ---
   useEffect(() => {
@@ -437,10 +429,11 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
     };
   }, []);
 
-  const vad = useMicVAD({
-    onSpeechEnd: handleEndInterrupt,
-    onSpeechStart: handleInterrupt,
-  })
+  useEffect(() => {
+    if (conversationEndRef.current) {
+      conversationEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [conversation, userInterimTranscript]);
 
   return (
     <div className="min-h-screen bg-gray-900 p-4">
@@ -461,7 +454,7 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
       {/* Main Video Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 max-w-6xl mx-auto">
         {/* AI Interviewer Card */}
-        <Card className={`relative overflow-hidden bg-gray-800 border-gray-700 transition-all duration-300 ${sessionStatus === 'active' && isPlayingAudio.current
+        <Card className={`relative overflow-hidden bg-gray-800 border-gray-700 transition-all duration-300 ${sessionStatus === 'active' && isAiSpeaking
           ? 'ring-4 ring-green-500 shadow-lg shadow-green-500/20'
           : ''
           }`}>
@@ -474,7 +467,7 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
             </div>
 
             {/* Speaking indicator */}
-            {sessionStatus === 'active' && isPlayingAudio.current && (
+            {sessionStatus === 'active' && isAiSpeaking && (
               <div className="absolute top-4 left-4">
                 <div className="flex items-center space-x-2 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
                   <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
@@ -532,7 +525,7 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
       </div>
 
       {/* Conversation Panel */}
-      {/* <Card className="max-w-6xl mx-auto mb-6 bg-gray-800 border-gray-700">
+      <Card className="max-w-6xl mx-auto mb-6 bg-gray-800 border-gray-700">
         <CardHeader>
           <CardTitle className="text-white">Conversation</CardTitle>
         </CardHeader>
@@ -545,8 +538,8 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
           {conversation.map((turn, index) => (
             <div key={index} className={`flex ${turn.role === 'model' ? 'justify-start' : 'justify-end'}`}>
               <div className={`max-w-[80%] p-3 rounded-lg ${turn.role === 'model'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-600 text-white'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-600 text-white'
                 }`}>
                 <div className="text-xs opacity-75 mb-1">
                   {turn.role === 'model' ? 'AI Interviewer' : 'You'}
@@ -558,13 +551,14 @@ const InterviewPage = ({ params }: { params: Promise<{ sessionId: string }> }) =
           {userInterimTranscript && (
             <div className="flex justify-end">
               <div className="bg-gray-500 text-white p-3 rounded-lg max-w-[80%] opacity-75">
-                <div className="text-xs opacity-75 mb-1">You (typing...)</div>
+                <div className="text-xs opacity-75 mb-1">You speaking...</div>
                 <div><em>{userInterimTranscript}</em></div>
               </div>
             </div>
           )}
+          <div ref={conversationEndRef} />
         </CardContent>
-      </Card> */}
+      </Card>
 
       {/* Control Panel */}
       <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2">
