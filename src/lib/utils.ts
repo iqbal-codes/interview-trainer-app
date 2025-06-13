@@ -6,9 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // add debounce utils functions
-export function debounce(func: Function, wait: number) {
+export function debounce<T extends (...args: unknown[]) => void>(func: T, wait: number) {
   let timeout: NodeJS.Timeout;
-  return function executedFunction(...args: any[]) {
+  return function executedFunction(...args: Parameters<T>) {
     const later = () => {
       clearTimeout(timeout);
       func(...args);

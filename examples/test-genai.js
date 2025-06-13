@@ -1,1 +1,0 @@
-const { GoogleGenAI } = require('@google/genai'); const genai = new GoogleGenAI(process.env.API_KEY); const model = genai.getGenerativeModel({ model: 'gemini-pro' }); async function run() { const result = await model.generateContent('Hello, how are you?'); console.log(result.response.text()); } run();

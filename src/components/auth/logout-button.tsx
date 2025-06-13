@@ -27,7 +27,7 @@ export function LogoutButton({ variant = 'default' }: LogoutButtonProps) {
         description: 'You have been logged out successfully.',
       });
 
-      router.push('/');
+      router.push('/auth/login');
       router.refresh();
     } catch (error) {
       toast({

@@ -3,8 +3,7 @@ import { interviewSetupSchema } from '@/lib/validations/interview';
 import { cookies } from 'next/headers';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { Database } from '@/lib/supabase/types';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { generateInterviewQuestions } from '@/lib/services/googleService';
 
 export async function POST(request: Request) {
   try {
@@ -71,75 +70,15 @@ export async function POST(request: Request) {
 
       const cvContext = profileData?.cv_text_content || '';
 
-      // Initialize Google Generative AI
-      if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        return NextResponse.json({ error: 'LLM API key not configured' }, { status: 500 });
-      }
-
-      const google = createGoogleGenerativeAI({
-        apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-      });
-
-      // Construct prompt for the LLM
-      const prompt = `
-        Generate ${
-          validatedData.requested_num_questions
-        } interview questions for a ${validatedData.target_role} position.
-        
-        Interview Type: ${validatedData.interview_type}
-        Key Skills: ${skills.join(', ')}
-        ${
-          validatedData.job_description_context
-            ? `Job Description: ${validatedData.job_description_context}`
-            : ''
-        }
-        ${cvContext ? `Candidate Background: ${cvContext}` : ''}
-        
-        Please return the questions in a JSON array format like this:
-        [
-          "Question 1 text here",
-          "Question 2 text here",
-          ...
-        ]
-        
-        The questions should be challenging but fair, and specifically tailored to the role and skills mentioned.
-        For technical roles, include appropriate technical questions related to the skills.
-        For behavioral interviews, focus on past experiences and situational questions.
-        For HR screening, focus on motivation, cultural fit, and career goals.
-      `;
-
       try {
-        // Call the LLM using Vercel AI SDK
-        const { text: generatedText } = await generateText({
-          model: google('gemini-2.5-flash-preview-04-17'),
-          prompt,
-          temperature: 0.7,
-          maxTokens: 2048,
-        });
-
-        // Parse the LLM response to extract questions
-        let questions: string[] = [];
-
-        try {
-          // Try parsing as JSON array first
-          const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            questions = JSON.parse(jsonMatch[0]);
-          } else {
-            // Fallback to line-by-line parsing for numbered lists
-            questions = generatedText
-              .split('\n')
-              .filter(line => line.trim().match(/^\d+[\.\)]\s+/)) // Match lines starting with numbers
-              .map(line => line.replace(/^\d+[\.\)]\s+/, '').trim());
-          }
-        } catch (parseError) {
-          console.error('Error parsing LLM response:', parseError);
-          // Fallback: split by newlines and clean up
-          questions = generatedText
-            .split('\n')
-            .filter(line => line.trim().length > 10) // Simple heuristic to find question-like lines
-            .map(line => line.trim());
-        }
+        // Generate interview questions using the googleService
+        const questions = await generateInterviewQuestions(
+          validatedData.interview_type,
+          validatedData.requested_num_questions,
+          skills,
+          validatedData.job_description_context || undefined,
+          cvContext || undefined
+        );
 
         // Ensure we have at least some questions
         if (questions.length === 0) {
@@ -150,10 +89,10 @@ export async function POST(request: Request) {
         }
 
         // Limit to the requested number of questions
-        questions = questions.slice(0, validatedData.requested_num_questions);
+        const limitedQuestions = questions.slice(0, validatedData.requested_num_questions);
 
         // Save questions to the database
-        const questionsToInsert = questions.map((questionText, index) => ({
+        const questionsToInsert = limitedQuestions.map((questionText, index) => ({
           session_id: sessionId,
           question_text: questionText,
           question_order: index + 1,
@@ -177,7 +116,7 @@ export async function POST(request: Request) {
         await supabase
           .from('interview_sessions')
           .update({
-            actual_num_questions: questions.length,
+            actual_num_questions: limitedQuestions.length,
             status: 'ready_to_start',
           })
           .eq('id', sessionId);

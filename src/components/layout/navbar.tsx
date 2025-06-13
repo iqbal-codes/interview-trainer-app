@@ -45,7 +45,7 @@ export function Navbar() {
     try {
       await supabase.auth.signOut();
       toast.success('Logged out successfully');
-      router.push('/');
+      router.push('/auth/login');
     } catch (error) {
       toast.error('Error signing out');
       console.error('Error signing out:', error);
@@ -56,7 +56,7 @@ export function Navbar() {
     <nav className="border-b bg-background flex justify-center">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href={user ? "/dashboard" : "/auth/login"} className="flex items-center gap-2">
             <span className="text-xl font-bold">AI Interview Practice</span>
           </Link>
         </div>

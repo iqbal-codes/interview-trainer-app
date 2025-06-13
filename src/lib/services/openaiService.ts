@@ -1,16 +1,14 @@
 import OpenAI from 'openai';
-import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { generateText } from 'ai';
+import { google } from '@ai-sdk/google';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-// Initialize Google Generative AI
-const genai = new GoogleGenAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY });
 
 /**
  * Transcribes audio using OpenAI's Whisper API
@@ -65,12 +63,12 @@ export async function getLLMFeedback(transcript: string): Promise<object> {
     `;
 
     // Call the LLM using Google Generative AI
-    const response = await genai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-04-17',
-      contents: prompt,
+    const { text: generatedText } = await generateText({
+      model: google('gemini-2.0-flash'),
+      prompt,
     });
     
-    const generatedFeedback = response.text || '';
+    const generatedFeedback = generatedText || '';
 
     // Parse the LLM's response into a JSON object
     try {
