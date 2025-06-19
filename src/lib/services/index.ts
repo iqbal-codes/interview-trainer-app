@@ -2,12 +2,15 @@ import apiClient from './apiClient';
 import authService from './authService';
 import cvService from './cvService';
 import interviewService from './interviewService';
+import { withTransaction, SupabaseTransactionManager } from '@/lib/utils/supabaseTransaction';
 
 export {
   apiClient,
   authService,
   cvService,
-  interviewService
+  interviewService,
+  withTransaction,
+  SupabaseTransactionManager
 };
 
 // Re-export the types from services for easier imports
@@ -30,4 +33,9 @@ export type {
   ConversationTurn,
   FeedbackRequest,
   FeedbackResponse,
-} from './interviewService'; 
+} from './interviewService';
+
+export type {
+  // Transaction types
+  TransactionRecord,
+} from '@/lib/utils/supabaseTransaction'; 

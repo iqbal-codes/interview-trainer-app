@@ -1,0 +1,155 @@
+import { NextResponse } from 'next/server';
+import { InterviewSetupInput, interviewSetupSchema } from '@/lib/validations/interview';
+import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { Database } from '@/types';
+import { generateInterviewQuestions } from '@/lib/services/googleService';
+import { withTransaction } from '@/lib/utils/supabaseTransaction';
+
+export async function POST(request: Request) {
+  // Initialize Supabase client
+  const supabase = createRouteHandlerClient<Database>({ cookies });
+
+  // Check authentication
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const userId = session.user.id;
+
+  // Parse the request body
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+  }
+
+  // Validate input data
+  let validatedData: InterviewSetupInput;
+  try {
+    validatedData = interviewSetupSchema.parse(body);
+  } catch (validationError) {
+    console.error('Validation error:', validationError);
+    return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+  }
+
+  // Use our transaction manager to handle rollbacks
+  try {
+    return await withTransaction(supabase, async txManager => {
+      // Create a new interview session in the database
+      const { data: sessionData, error: sessionError } = await supabase
+        .from('interview_sessions')
+        .insert({
+          user_id: userId,
+          target_role: validatedData.target_role,
+          interview_type: validatedData.interview_type,
+          job_description_context: validatedData.job_description_context || null,
+          requested_num_questions: validatedData.requested_num_questions,
+          status: 'pending',
+          session_name: `${validatedData.interview_type} Interview for ${validatedData.target_role}`,
+        })
+        .select()
+        .single();
+
+      if (sessionError) {
+        console.error('Error creating interview session:', sessionError);
+        throw new Error('Failed to create interview session');
+      }
+
+      const sessionId = sessionData.id;
+      // Track the insert operation
+      txManager.trackInsert('interview_sessions', sessionId);
+
+      // Get user's CV content for context if available
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('cv_text_content')
+        .eq('user_id', userId)
+        .single();
+
+      const cvContext = profileData?.cv_text_content || '';
+
+      // Generate interview questions using the googleService
+      const questions = await generateInterviewQuestions(
+        validatedData.interview_type,
+        validatedData.requested_num_questions,
+        validatedData.job_description_context || undefined,
+        cvContext || undefined
+      );
+
+      // Ensure we have at least some questions
+      if (questions.length === 0) {
+        throw new Error('Failed to generate valid questions from LLM');
+      }
+
+      // Limit to the requested number of questions
+      const limitedQuestions = questions.slice(0, validatedData.requested_num_questions);
+
+      // Save questions to the database
+      const questionsToInsert = limitedQuestions.map((questionText, index) => ({
+        session_id: sessionId,
+        question_text: questionText,
+        question_order: index + 1,
+        question_type_tag: validatedData.interview_type.toLowerCase().replace(' - ', '_'),
+      }));
+
+      const { data: insertedQuestions, error: questionsError } = await supabase
+        .from('interview_questions')
+        .insert(questionsToInsert)
+        .select();
+
+      if (questionsError) {
+        console.error('Error inserting questions:', questionsError);
+        throw new Error('Failed to save generated questions');
+      }
+
+      // Track each inserted question
+      insertedQuestions.forEach(q => {
+        txManager.trackInsert('interview_questions', q.id);
+      });
+
+      // Update the session with the actual number of questions and status
+      const { error: updateError } = await supabase
+        .from('interview_sessions')
+        .update({
+          actual_num_questions: limitedQuestions.length,
+          status: 'ready_to_start',
+        })
+        .eq('id', sessionId);
+
+      if (updateError) {
+        console.error('Error updating session status:', updateError);
+        throw new Error('Failed to update session status');
+      }
+
+      // Format the response
+      const formattedQuestions = insertedQuestions.map(q => ({
+        id: q.id,
+        question_text: q.question_text,
+        order: q.question_order,
+      }));
+
+      return NextResponse.json(
+        {
+          message: 'Interview session created and questions generated by LLM.',
+          session_id: sessionId,
+          questions: formattedQuestions,
+        },
+        { status: 201 }
+      );
+    });
+  } catch (error) {
+    console.error('Error generating interview:', error);
+    return NextResponse.json(
+      {
+        error: `Failed to generate interview: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      },
+      { status: 500 }
+    );
+  }
+}

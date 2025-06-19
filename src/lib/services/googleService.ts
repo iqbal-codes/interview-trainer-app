@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { generateText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 
 // Initialize Google Generative AI
 
@@ -17,11 +17,144 @@ const speech = new SpeechClient();
  * @returns The API key or throws an error if not found
  */
 function getGoogleApiKey(): string {
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
+  const apiKey =
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY ||
+    process.env.NEXT_PUBLIC_GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {
     throw new Error('Google Generative AI API key not found in environment variables');
   }
   return apiKey;
+}
+
+const google = createGoogleGenerativeAI({
+  apiKey: getGoogleApiKey(),
+});
+
+/**
+ * Interface for structured CV data
+ */
+export interface StructuredCVData {
+  summary: string;
+  skills: string[];
+  experience: {
+    company: string;
+    position: string;
+    duration: string;
+    description: string;
+  }[];
+  education: {
+    institution: string;
+    degree: string;
+    duration: string;
+  }[];
+  projects?: {
+    name: string;
+    description: string;
+  }[];
+  certifications?: string[];
+  achievements?: string[];
+  languages?: string[];
+}
+
+/**
+ * Analyzes CV text using Google Gemini AI and extracts structured information
+ * @param cvText The raw text extracted from the CV
+ * @returns Promise that resolves to structured CV data
+ */
+export async function analyzeCVWithGemini(cvText: string): Promise<StructuredCVData> {
+  try {
+    // Ensure we have an API key
+    getGoogleApiKey();
+
+    const prompt = `
+      You are an expert CV/Resume analyzer. Your task is to extract structured information from the provided CV text.
+      
+      Here is the CV text:
+      ${cvText}
+      
+      Please analyze this CV and extract the following information in JSON format:
+      {
+        "summary": "A brief professional summary of the candidate",
+        "skills": ["Skill 1", "Skill 2", "Skill 3", ...],
+        "experience": [
+          {
+            "company": "Company name",
+            "position": "Job title",
+            "duration": "Employment period",
+            "description": "Brief description of responsibilities and achievements"
+          },
+          ...
+        ],
+        "education": [
+          {
+            "institution": "School/University name",
+            "degree": "Degree/Certificate obtained",
+            "duration": "Study period"
+          },
+          ...
+        ],
+        "projects": [
+          {
+            "name": "Project name",
+            "description": "Brief project description"
+          },
+          ...
+        ],
+        "certifications": ["Certification 1", "Certification 2", ...],
+        "achievements": ["Achievement 1", "Achievement 2", ...],
+        "languages": ["Language 1", "Language 2", ...],
+      }
+      
+      Notes:
+      1. If any section is not present in the CV, include an empty array [] or appropriate default value.
+      2. Extract only factual information that is explicitly mentioned in the CV.
+      3. For the summary, if the summary is not present in the CV, create a concise professional summary based on the CV content.
+      5. Return ONLY the JSON object, with no additional text before or after.
+    `;
+
+    // Call the LLM using Google Generative AI
+    const { text: generatedText } = await generateText({
+      model: google('gemini-2.0-flash'),
+      prompt,
+    });
+
+    if (!generatedText) {
+      throw new Error('Empty response from Gemini');
+    }
+
+    try {
+      // Extract JSON if the response contains additional text
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : generatedText;
+
+      if (!jsonStr) {
+        throw new Error('Empty response from Gemini');
+      }
+
+      // Parse the JSON response
+      const structuredData = JSON.parse(jsonStr) as StructuredCVData;
+
+      return structuredData;
+    } catch (parseError) {
+      console.error('Error parsing Gemini CV analysis response:', parseError);
+      // If parsing fails, return a basic structure with the raw text
+      return {
+        summary: 'Failed to analyze CV',
+        skills: [],
+        experience: [],
+        education: [],
+      };
+    }
+  } catch (error) {
+    console.error('Error analyzing CV with Gemini:', error);
+    // Return a basic structure with the raw text if analysis fails
+    return {
+      summary: 'Failed to analyze CV',
+      skills: [],
+      experience: [],
+      education: [],
+    };
+  }
 }
 
 /**
@@ -68,7 +201,7 @@ export async function transcribeGoogleAudio(audioFilePath: string): Promise<stri
  * @param transcript The text transcript of the user's answer
  * @returns Promise that resolves to the feedback object
  */
-interface FeedbackResponse {
+export interface FeedbackResponse {
   overall_summary: string;
   strengths_feedback: string;
   areas_for_improvement_feedback: string;
@@ -144,14 +277,13 @@ export async function getGoogleFeedback(conversationHistory: string): Promise<Fe
 export async function generateInterviewQuestions(
   interviewType: string,
   numQuestions: number,
-  skills: string[],
   jobDescription?: string,
   cvContext?: string
 ): Promise<string[]> {
   try {
     // Ensure we have an API key
     getGoogleApiKey();
-    
+
     // Construct prompt for the LLM
     const prompt = `
       You are an expert Question Generator for job interviews. Your task is to create a list of ${numQuestions} high-quality, relevant interview questions based on the provided context.
@@ -160,7 +292,6 @@ export async function generateInterviewQuestions(
       
       1. Core Interview Context:
       Interview Type: ${interviewType}
-      Key Skills: ${skills.join(', ')}
       ${jobDescription ? `Job Description: ${jobDescription}` : ''}
       ${cvContext ? `Candidate Background: ${cvContext}` : ''}
 
@@ -189,7 +320,7 @@ export async function generateInterviewQuestions(
 
     // Call the LLM using Vercel AI SDK
     const { text: generatedText } = await generateText({
-      model: google('gemini-2.0-'),
+      model: google('gemini-2.0-flash'),
       prompt,
     });
 

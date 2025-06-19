@@ -2,10 +2,6 @@ import * as z from 'zod';
 
 export const interviewSetupSchema = z.object({
   target_role: z.string().min(3, { message: 'Target role must be at least 3 characters' }).trim(),
-  key_skills_focused: z.union([
-    z.string().min(1, { message: 'Please enter at least one skill' }).trim(),
-    z.array(z.string().trim()).min(1, { message: 'Please enter at least one skill' }),
-  ]),
   interview_type: z.enum(['Behavioral', 'Technical - General', 'HR Screening', 'Situational'], {
     required_error: 'Please select an interview type',
   }),

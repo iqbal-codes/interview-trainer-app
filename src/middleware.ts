@@ -3,21 +3,23 @@ import { createServerClient } from '@/lib/supabase/server';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Only run this middleware for the root path
-  if (pathname !== '/') {
+  if (pathname !== '/app') {
     return NextResponse.next();
   }
 
   try {
     const supabase = createServerClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     // If user is authenticated, redirect to dashboard
     if (session) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/app', request.url));
     }
-    
+
     // If user is not authenticated, redirect to login page
     return NextResponse.redirect(new URL('/auth/login', request.url));
   } catch (error) {
@@ -30,4 +32,4 @@ export async function middleware(request: NextRequest) {
 // Configure the middleware to only run on the homepage
 export const config = {
   matcher: '/',
-}; 
+};

@@ -1,5 +1,5 @@
 declare module 'next-ws' {
-  import { WebSocket, WebSocketServer } from 'ws';
+  import { WebSocket } from 'ws';
   import { IncomingMessage as HttpIncomingMessage, ServerResponse as HttpServerResponse } from 'http';
   
   export type IncomingMessage = HttpIncomingMessage;

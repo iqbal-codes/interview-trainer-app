@@ -1,67 +1,33 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { InterviewSession } from '@/lib/services';
+import { InterviewSetupForm } from '../interview/interview-setup-form';
 
-interface InterviewSession {
-  id: string;
-  created_at: string;
-  target_role: string;
-  interview_type: string;
-  status: string;
-  actual_num_questions: number;
-  overall_score: number | null;
+export type InterviewSessionListProps = {
+  interviews?: InterviewSession[];
+  isLoading: boolean;
 }
 
-export function InterviewSessionsList() {
-  const [sessions, setSessions] = useState<InterviewSession[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  const supabase = createClient();
-
-  useEffect(() => {
-    const fetchSessions = async () => {
-      if (!user) return;
-
-      setIsLoading(true);
-
-      try {
-        // Use the App Router API endpoint instead of direct Supabase query
-        const response = await fetch('/api/interviews');
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch interview sessions');
-        }
-
-        const data = await response.json();
-        setSessions(data);
-      } catch (error) {
-        console.error('Error fetching interview sessions:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSessions();
-  }, [user]);
-
+export function InterviewSessionsList({ isLoading, interviews }: InterviewSessionListProps) {
   if (isLoading) {
     return <SessionsLoadingSkeleton />;
   }
 
-  if (!sessions || sessions.length === 0) {
+  if (!interviews || interviews.length === 0) {
     return (
-      <div className="text-center py-8">
-        <h3 className="text-lg font-medium mb-2">No interview sessions yet</h3>
-        <p className="text-muted-foreground mb-4">
-          Create your first interview session to start practicing
-        </p>
+      <div className="space-y-6">
+        <div className="text-center py-4">
+          <h2 className="text-2xl font-semibold mb-2">Welcome to Interview Trainer</h2>
+          <p className="text-muted-foreground mb-6">
+            Get started by setting up your first interview practice session
+          </p>
+        </div>
+        <InterviewSetupForm />
       </div>
     );
   }
@@ -76,17 +42,17 @@ export function InterviewSessionsList() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sessions.map(session => (
-          <Card key={session.id} className="overflow-hidden">
+        {interviews.map(interview => (
+          <Card key={interview.id} className="overflow-hidden">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-start">
                 <CardTitle className="text-lg font-semibold truncate">
-                  {session.target_role}
+                  {interview.target_role}
                 </CardTitle>
-                <StatusIndicator status={session.status} />
+                <StatusIndicator status={interview.status} />
               </div>
               <p className="text-sm text-muted-foreground">
-                {format(new Date(session.created_at), 'MMM d, yyyy')}
+                {format(new Date(interview.created_at), 'MMM d, yyyy')}
               </p>
             </CardHeader>
 
@@ -94,23 +60,24 @@ export function InterviewSessionsList() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <p className="text-muted-foreground">Type</p>
-                  <p>{session.interview_type}</p>
+                  <p>{interview.interview_type}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Questions</p>
-                  <p>{session.actual_num_questions}</p>
+                  <p>{interview.actual_num_questions}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Score</p>
-                  <p>
-                    {typeof session.overall_score === 'number'
-                      ? `${session.overall_score}/10`
+                  <p>-</p>
+                  {/* <p>
+                    {typeof interview.overall_score === 'number'
+                      ? `${interview.overall_score}/10`
                       : '—'}
-                  </p>
+                  </p> */}
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
-                  <p className="capitalize">{session.status.replace(/_/g, ' ')}</p>
+                  <p className="capitalize">{interview.status.replace(/_/g, ' ')}</p>
                 </div>
               </div>
             </CardContent>
@@ -118,14 +85,14 @@ export function InterviewSessionsList() {
             <CardFooter className="pt-2">
               <Link
                 href={
-                  session.status === 'completed'
-                    ? `/interviews/${session.id}/feedback`
-                    : `/interviews/${session.id}`
+                  interview.status === 'completed'
+                    ? `/interviews/${interview.id}/feedback`
+                    : `/interviews/${interview.id}`
                 }
                 className="w-full"
               >
                 <Button variant="outline" className="w-full">
-                  {session.status === 'completed' ? 'View Feedback' : 'Continue Interview'}
+                  {interview.status === 'completed' ? 'View Feedback' : 'Continue Interview'}
                 </Button>
               </Link>
             </CardFooter>

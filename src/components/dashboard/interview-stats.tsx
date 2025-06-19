@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/lib/context/auth-context';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InterviewSession } from '@/lib/services';
 
 interface InterviewStats {
   total: number;
@@ -13,62 +12,41 @@ interface InterviewStats {
   averageScore: number | null;
 }
 
-export function InterviewStats() {
-  const [stats, setStats] = useState<InterviewStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-  const supabase = createClient();
+type InterviewStatsProps = {
+  interviews?: InterviewSession[];
+  isLoading: boolean;
+}
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      if (!user) return;
+export function InterviewStats({ interviews, isLoading }: InterviewStatsProps) {
+  const stats = useMemo(() => {
+    if (!interviews) return null;
 
-      setIsLoading(true);
+    const total = interviews?.length || 0;
+    const completed = interviews?.filter(interview => interview.status === 'completed').length || 0;
+    const inProgress =
+      interviews?.filter(
+        interview => interview.status === 'active' || interview.status === 'pending'
+      ).length || 0;
 
-      try {
-        // Fetch interview sessions
-        const { data: sessions, error } = await supabase
-          .from('interview_sessions')
-          .select('*')
-          .eq('user_id', user.id);
+    // Calculate average score if any interviews have scores
+    const averageScore = null;
+    // const interviewsWithScores = interviews?.filter(interview => interview.overall_score !== null);
 
-        if (error) throw error;
+    // if (interviewsWithScores && interviewsWithScores.length > 0) {
+    //   const totalScore = interviewsWithScores.reduce(
+    //     (sum, interview) => sum + (interview.overall_score || 0),
+    //     0
+    //   );
+    //   averageScore = Math.round((totalScore / interviewsWithScores.length) * 10) / 10;
+    // }
 
-        // Calculate stats
-        const total = sessions?.length || 0;
-        const completed = sessions?.filter(session => session.status === 'completed').length || 0;
-        const inProgress =
-          sessions?.filter(
-            session => session.status === 'in_progress' || session.status === 'ready_to_start'
-          ).length || 0;
-
-        // Calculate average score if any sessions have scores
-        let averageScore = null;
-        const sessionsWithScores = sessions?.filter(session => session.overall_score !== null);
-
-        if (sessionsWithScores && sessionsWithScores.length > 0) {
-          const totalScore = sessionsWithScores.reduce(
-            (sum, session) => sum + (session.overall_score || 0),
-            0
-          );
-          averageScore = Math.round((totalScore / sessionsWithScores.length) * 10) / 10;
-        }
-
-        setStats({
-          total,
-          completed,
-          inProgress,
-          averageScore,
-        });
-      } catch (error) {
-        console.error('Error fetching interview stats:', error);
-      } finally {
-        setIsLoading(false);
-      }
+    return {
+      total,
+      completed,
+      inProgress,
+      averageScore,
     };
-
-    fetchStats();
-  }, [user, supabase]);
+  }, [interviews]);
 
   if (isLoading) {
     return <StatsLoadingSkeleton />;

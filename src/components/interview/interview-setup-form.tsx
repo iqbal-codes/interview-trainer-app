@@ -1,10 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -33,90 +30,40 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 import { interviewSetupSchema, type InterviewSetupInput } from '@/lib/validations/interview';
+import { toast } from 'sonner';
+import { useMutation } from '@tanstack/react-query';
+import interviewService from '@/lib/services/interviewService';
 
-interface InterviewSessionResponse {
-  message: string;
-  session_id: string;
-  questions: Array<{
-    id: string;
-    question_text: string;
-    order: number;
-  }>;
-}
 
-interface InterviewSetupFormProps {
-  onSuccess?: (data: InterviewSessionResponse) => void;
-}
+export function InterviewSetupForm() {
+  const { mutate: createInterview, isPending: isLoading } = useMutation({
+    mutationFn: (data: InterviewSetupInput) => interviewService.createInterview(data),
+    onSuccess: () => {
+      // Show success message
+      toast.success('Interview session created successfully!');
 
-export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [generatedSession, setGeneratedSession] = useState<InterviewSessionResponse | null>(null);
-  const router = useRouter();
+      // Call the onSuccess callback if provided
+    },
+    onError: (error: Error) => {
+      const errorMessage = error.message || 'An error occurred while generating the interview';
+      toast.error(errorMessage);
+    },
+  });
 
   const form = useForm<InterviewSetupInput>({
     resolver: zodResolver(interviewSetupSchema),
     defaultValues: {
       target_role: '',
-      key_skills_focused: '',
       interview_type: 'Behavioral',
       job_description_context: '',
       requested_num_questions: 5,
     },
   });
 
-  const onSubmit = async (data: InterviewSetupInput) => {
-    setApiError(null);
-    setGeneratedSession(null);
-
-    try {
-      // Process key_skills_focused into an array
-      const processedData = {
-        ...data,
-        key_skills_focused: Array.isArray(data.key_skills_focused)
-          ? data.key_skills_focused.map((skill: string) => skill.trim())
-          : [data.key_skills_focused.trim()],
-      };
-
-      // Call the API
-      const response = await fetch('/api/interviews/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(processedData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate interview');
-      }
-
-      const responseData = (await response.json()) as InterviewSessionResponse;
-
-      // Store the generated session data
-      setGeneratedSession(responseData);
-
-      // Show success message
-      toast.success('Interview session created successfully!');
-
-      // Call the onSuccess callback if provided
-      if (onSuccess) {
-        onSuccess(responseData);
-      } else {
-        // Navigate to the dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard');
-        }, 1500);
-      }
-    } catch (error) {
-      const errorMessage =
-        (error as Error).message || 'An error occurred while generating the interview';
-      setApiError(errorMessage);
-      toast.error(errorMessage);
-    }
+  const onSubmit = (data: InterviewSetupInput) => {
+    createInterview(data);
   };
 
   return (
@@ -142,22 +89,6 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                     <Input placeholder="e.g., Software Engineer, Product Manager" {...field} />
                   </FormControl>
                   <FormDescription>What role are you practicing for?</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Key Skills Input */}
-            <FormField
-              control={form.control}
-              name="key_skills_focused"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Key Skills to Focus On</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., React, Node.js, Problem Solving" {...field} />
-                  </FormControl>
-                  <FormDescription>Enter skills separated by commas.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -241,30 +172,14 @@ export function InterviewSetupForm({ onSuccess }: InterviewSetupFormProps) {
                 </FormItem>
               )}
             />
-
-            {/* API Error Display */}
-            {apiError && (
-              <Alert variant="destructive">
-                <AlertDescription>{apiError}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Success Message (temporary) */}
-            {generatedSession && (
-              <Alert>
-                <AlertDescription>
-                  Interview session created! Redirecting to dashboard...
-                </AlertDescription>
-              </Alert>
-            )}
           </CardContent>
 
           <CardFooter className="flex justify-end">
             <Button
               type="submit"
-              disabled={form.formState.isSubmitting || generatedSession !== null}
+              disabled={isLoading}
             >
-              {form.formState.isSubmitting ? 'Generating...' : 'Generate Interview'}
+              {isLoading ? 'Generating...' : 'Generate Interview'}
             </Button>
           </CardFooter>
         </form>

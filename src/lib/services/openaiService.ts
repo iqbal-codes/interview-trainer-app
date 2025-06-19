@@ -67,7 +67,7 @@ export async function getLLMFeedback(transcript: string): Promise<object> {
       model: google('gemini-2.0-flash'),
       prompt,
     });
-    
+
     const generatedFeedback = generatedText || '';
 
     // Parse the LLM's response into a JSON object
@@ -75,11 +75,11 @@ export async function getLLMFeedback(transcript: string): Promise<object> {
       // Extract JSON if the response contains additional text
       const jsonMatch = generatedFeedback.match(/\{[\s\S]*\}/);
       const jsonStr = jsonMatch ? jsonMatch[0] : generatedFeedback;
-      
+
       if (!jsonStr) {
         throw new Error('Empty response from LLM');
       }
-      
+
       return JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Error parsing LLM feedback response:', parseError);
